@@ -65,6 +65,8 @@ bool IsOpSupported(std::string name, std::string device) {
       "Conv",
       "ConvTranspose",
       "DepthToSpace",
+      "DequantizeLinear",
+      "QuantizeLinear",
       "Div",
       "Dropout",
       "Elu",
@@ -290,8 +292,8 @@ static bool IsUnsupportedOpMode(const Node* node, const GraphViewer& graph_viewe
     return !(data_is_float || data_is_float16 || data_is_double);
   } else if (optype == "Conv" || optype == "ConvTranspose") {
     
-    if (GetInputCount(node, initializers) > 1)
-      return true;
+    //if (GetInputCount(node, initializers) > 1)
+    //  return true;
     //we do not support cov operations with dynamic batching in myriad
     if ((optype =="ConvTranspose") && (device_id.find("MYRIAD") != std::string::npos)) {
       const auto& input_arg = node->InputDefs()[0];
@@ -530,12 +532,15 @@ static bool IsTypeSupported(const NodeArg* node_arg, bool is_initializer, const 
   }
 
   if (is_initializer) {
+    std::cout << "initializer data type" << type_proto->tensor_type().elem_type() << "\n";
     switch (type_proto->tensor_type().elem_type()) {
       case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_BOOL:
       case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT:
       case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT16:
       case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_INT32:
       case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_INT64:
+      case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_INT8:
+      case ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_UINT8:
         return true;
       default:
 
