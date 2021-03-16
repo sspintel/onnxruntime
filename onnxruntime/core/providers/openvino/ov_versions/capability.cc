@@ -6,6 +6,9 @@
 #include "../backend_manager.h"
 #include "capabilities.h"
 #include "utils.h"
+#include "ias3.h"
+#include "ias_errors.h"
+#include <codecvt>
 
 #if defined(_MSC_VER)
 #pragma warning(disable : 4244 4245 5208)
@@ -24,7 +27,14 @@
 namespace onnxruntime {
 namespace openvino_ep {
 
-//Constructor 
+#define FAIL_ON_ERR(e) (void(0))
+
+template < typename T, uint32_t N >
+uint32_t countof(T(&)[N])
+{
+    return std::extent< T[N] >::value;
+}
+//Constructor
 GetCapability::GetCapability(const GraphViewer& graph_viewer_param, std::string device_type_param,
                              const std::string version_param):
                 graph_viewer_(graph_viewer_param), device_type_(device_type_param){
@@ -48,6 +58,28 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
     return result;
   }
 
+  std::wstring app_name{ L"Onnx" };
+  std::wstring telemetry_id{ L"00000000-1111-2222-3333-444444444444" };
+  std::wstring app_version{ L"ort1.2" };
+  std::wstring store_folder;
+  std::wstring options{ LR"({"post_did":"generate"})" };
+  const wchar_t* const init_keys[] = { L"ikey1", L"ikey2" };
+  const wchar_t* const init_vals[] = { L"ival1", L"ival2" };
+
+  ias_handle_t onnx_handle = IAS3_INVALID_SDK_HANDLE;
+  auto res = InitializeEx(
+    &onnx_handle,
+    app_name.c_str(),
+    app_version.c_str(),
+    telemetry_id.c_str(),
+    options.c_str(),
+    store_folder.c_str(),
+    init_keys,
+    init_vals,
+    countof(init_keys)
+  );
+  std::cout << "Initialize from ORT " << res << std::endl;
+  FAIL_ON_ERR(res);
   // Need access to model_path_
   for (const auto& tensor : graph_viewer_.GetAllInitializedTensors()) {
     if (tensor.second->has_data_location() && tensor.second->data_location() == ONNX_NAMESPACE::TensorProto_DataLocation_EXTERNAL) {
@@ -59,7 +91,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
   // This is a list of initializers that nGraph considers as constants. Example weights, reshape shape etc.
   std::unordered_set<std::string> ng_required_initializers;
 
-  const auto unsupported_nodes = data_ops_->GetUnsupportedNodeIndices(ng_required_initializers);
+  const auto unsupported_nodes = data_ops_->GetUnsupportedNodeIndices(ng_required_initializers, onnx_handle);
   #ifndef NDEBUG
   if (openvino_ep::backend_utils::IsDebugEnabled()) {
     std::cout << "No of unsupported nodes " << unsupported_nodes.size() << std::endl;
@@ -69,6 +101,17 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
     }
   }
   #endif
+  auto nodes = graph_viewer_.GetNodesInTopologicalOrder();
+  if(unsupported_nodes.size() != nodes.size()){
+
+    const wchar_t* const ekeys[] = { L"Layer1", L"Layer2", L"Layer3" };
+    const wchar_t* const evals[] = { L"eval1", L"eval2", L"eval3" };
+    std::wstring event_name{ L"OrtInitialized" };
+
+    res = RecordEventEx(onnx_handle, nullptr, event_name.c_str(), 1, 1.0, ekeys, evals, countof(ekeys));
+    std::wcout << "Event recorded " << event_name.c_str() << std::endl;
+    FAIL_ON_ERR(res);
+  }
 
   //If all ops are supported, no partitioning is required. Short-circuit and avoid splitting.
   if (unsupported_nodes.empty()) {
@@ -111,7 +154,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
     openvino_ep::BackendManager::GetGlobalContext().is_wholly_supported_graph = true;
 
   } else {  // unsupported_nodes_idx.empty()
-   
+
     std::vector<NodeIndex> modified_unsupported_nodes;
     for (const auto& node_idx : graph_viewer_.GetNodesInTopologicalOrder()) {
       if (find(unsupported_nodes.begin(), unsupported_nodes.end(), node_idx) != unsupported_nodes.end()) {
@@ -160,7 +203,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
           if(data_ops_->SpecialConditionForClusterSizeOne(ng_required_initializers, node))
             continue;
         }
-      }  
+      }
 
       std::vector<std::string> cluster_graph_inputs, cluster_inputs, const_inputs, cluster_outputs;
 
@@ -180,7 +223,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             }
           }
         }
-      
+
         if (node->OpType() == "Conv" || node->OpType() == "Identity") {
           auto output_name = node->OutputDefs()[0]->Name();
           auto it = find(cluster_outputs.begin(), cluster_outputs.end(), output_name);
@@ -189,7 +232,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             break;
           }
         }
-        
+
         std::map<std::string, int> slice_map;
         if (node->OpType() == "Slice") {
           auto input = node->InputDefs()[0];
@@ -224,8 +267,16 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Supported subgraphs on OpenVINO: " << no_of_clusters;
   }
 
+  res = Deinitialize(onnx_handle);
+  std::wcout << "Deinitializing in ORT " << std::endl;
+  std::wcout << "start uploading ..." << std::endl;
+  res = Upload(telemetry_id.c_str(), LR"({"show":false, "wait": true})");
+  std::wcout << "Upload 0x" << std::setw(8) << res << "\n";
+  std::wcout << "uploading finished " << std::endl;
+  FAIL_ON_ERR(res);
+
   return result;
-} 
+}
 
 }
 }

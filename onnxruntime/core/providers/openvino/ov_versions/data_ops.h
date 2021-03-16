@@ -1,12 +1,13 @@
 #pragma once
 #include <unordered_set>
+#include "ias3.h"
 
 namespace onnxruntime {
 namespace openvino_ep {
 
 using VarianceFunc = std::function<bool(const Node*, const Provider_InitializedTensorSet&)>;
 
-enum versionNum{ 
+enum versionNum{
   V_2020_4,
   V_2021_1,
   V_2021_2
@@ -17,17 +18,17 @@ using VersionNum = enum versionNum;
 struct supportedOp {
   std::string optype;
   VersionNum version;
-  std::vector<std::string> device_type;  
+  std::vector<std::string> device_type;
 };
 
 struct unsupportedOpMode{
   std::vector<VersionNum> ver;
-  VarianceFunc func; 
+  VarianceFunc func;
 };
 
 using SupportedOp = struct supportedOp;
 using UnsupportedOpMode = struct unsupportedOpMode;
-using Pairs = std::pair<VersionNum,int>; 
+using Pairs = std::pair<VersionNum,int>;
 
 class DataOps{
 
@@ -38,7 +39,7 @@ std::string device_id_;
 std::multimap<std::string, UnsupportedOpMode> op_list_;
 std::vector<SupportedOp> subgraph_supported_;
 std::vector<SupportedOp> no_dimension_supported_;
-std::set<Pairs> supported_types_vpu_; 
+std::set<Pairs> supported_types_vpu_;
 std::set<Pairs> supported_types_cpu_;
 std::set<Pairs> supported_types_gpu_;
 std::set<Pairs> supported_types_initializer_;
@@ -50,10 +51,10 @@ protected:
   bool dimension_unsupported(const Node* node);
   bool unsupported_op_mode(const Node* node);
   bool type_is_supported(const NodeArg* node_arg, bool is_initializer);
-  bool node_is_supported(const std::map<std::string, 
+  bool node_is_supported(const std::map<std::string,
                          std::set<std::string>>& op_map,
                          const NodeIndex node_idx);
-   
+
 public:
   DataOps(const GraphViewer& graph_viewer_param, VersionNum ver, std::string dev_id):
             graph_viewer_(graph_viewer_param), version_id_(ver), device_id_(dev_id)  {
@@ -61,7 +62,7 @@ public:
     populate_types_supported();
   }
 
-  virtual std::vector<NodeIndex> GetUnsupportedNodeIndices(std::unordered_set<std::string>& ng_required_initializers);
+  virtual std::vector<NodeIndex> GetUnsupportedNodeIndices(std::unordered_set<std::string>& ng_required_initializers, ias_handle_t sdk_handle);
   virtual bool IsOpSupportedOnlyInModel(std::string name);
   virtual bool SpecialConditionForClusterSizeOne(std::unordered_set<std::string>& ng_required_initializers, const Node* node);
   virtual bool DoNotOmitSubGraph(const std::string& name);
