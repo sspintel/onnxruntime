@@ -177,26 +177,25 @@ void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
     for (auto item : const_outputs_map_) {
       auto out_name = item.first;
       auto node = item.second;
-      auto output_tensor = GetOutputTensor(ort, context, out_name, subgraph_context_.output_names, node);
       FillOutputsWithConstantData(ort, node, output_tensor);
     }
 #endif
     // Get Output tensors
     LOGS_DEFAULT(INFO) << log_tag << "Inference successful";
   } else {
-    //Requesting for an idle infer_request from a pool of infer_requests_
-    std::shared_ptr<InferenceEngine::InferRequest> infer_request = inferRequestsQueue_->getIdleRequest();
-    if (!infer_request) {
-      LOGS_DEFAULT(INFO) << "No idle Infer Requests found from the infer_requests_ pool!";
-      THROW_IE_EXCEPTION << "No idle Infer Requests!";
-    }
-    StartAsyncInference(ort, context, infer_request);
-    CompleteAsyncInference(ort, context, infer_request);
-
-    // Get Output tensors
-    LOGS_DEFAULT(INFO) << log_tag << "Inference successful";
-    //Once the inference is completed, the infer_request becomes free and is placed back into pool of infer_requests_
-    inferRequestsQueue_->putIdleRequest(infer_request);
+      //Requesting for an idle infer_request from a pool of infer_requests_
+      std::shared_ptr<InferenceEngine::InferRequest> infer_request = inferRequestsQueue_->getIdleRequest();
+      if (!infer_request) {
+        LOGS_DEFAULT(INFO) << "No idle Infer Requests found from the infer_requests_ pool!";
+        THROW_IE_EXCEPTION << "No idle Infer Requests!";
+      }
+      StartAsyncInference(ort, context, infer_request);
+      CompleteAsyncInference(ort, context, infer_request);
+  
+      // Get Output tensors
+      LOGS_DEFAULT(INFO) << log_tag << "Inference successful";
+      //Once the inference is completed, the infer_request becomes free and is placed back into pool of infer_requests_
+      inferRequestsQueue_->putIdleRequest(infer_request);
 #ifndef NDEBUG
     if (openvino_ep::backend_utils::IsDebugEnabled()) {
       inferRequestsQueue_->printstatus();  //Printing the elements of infer_requests_ vector pool only in debug mode
