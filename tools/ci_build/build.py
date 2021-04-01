@@ -76,7 +76,7 @@ _check_python_version()
 
 
 def _openvino_verify_device_type(device_read):
-    choices = ["CPU_FP32", "GPU_FP32", "GPU_FP16", "VAD-M_FP16", "MYRIAD_FP16", "VAD-F_FP32"]
+    choices = ["CPU_FP32", "GPU_FP32", "GPU_FP16", "VAD-M_FP16", "MYRIAD_FP16", "VPUX_U8", "VAD-F_FP32"]
     status_hetero = True
     res = False
     if (device_read in choices):
@@ -569,8 +569,8 @@ def install_python_deps(numpy_version=""):
     dep_packages.append('sympy>=1.1')
     dep_packages.append('packaging')
     dep_packages.append('cerberus')
-    run_subprocess([sys.executable, '-m', 'pip', 'install', '--trusted-host',
-                    'files.pythonhosted.org'] + dep_packages)
+    #run_subprocess([sys.executable, '-m', 'pip', 'install', '--trusted-host',
+    #                'files.pythonhosted.org'] + dep_packages)
 
 
 # We need to install Torch to test certain functionalities of the ORT Python package
@@ -761,6 +761,8 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
         cmake_args += ["-Donnxruntime_USE_OPENVINO=ON",
                        "-Donnxruntime_USE_OPENVINO_MYRIAD=" + (
                            "ON" if args.use_openvino == "MYRIAD_FP16" else "OFF"),
+                       "-Donnxruntime_USE_OPENVINO_VPUX=" + (
+                           "ON" if args.use_openvino == "VPUX_U8" else "OFF"),
                        "-Donnxruntime_USE_OPENVINO_GPU_FP32=" + (
                            "ON" if args.use_openvino == "GPU_FP32" else "OFF"),
                        "-Donnxruntime_USE_OPENVINO_GPU_FP16=" + (

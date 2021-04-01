@@ -14,7 +14,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <ngraph/ngraph.hpp>
-#include <ngraph/frontend/onnx_import/onnx.hpp>
+// #include <ngraph/frontend/onnx_import/onnx.hpp>
 #if defined(_MSC_VER)
 #pragma warning(default : 4244 4245)
 #elif __GNUC__
@@ -24,7 +24,7 @@
 namespace onnxruntime {
 namespace openvino_ep {
 
-//Constructor 
+//Constructor
 GetCapability::GetCapability(const GraphViewer& graph_viewer_param, std::string device_type_param,
                              const std::string version_param):
                 graph_viewer_(graph_viewer_param), device_type_(device_type_param){
@@ -111,7 +111,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
     openvino_ep::BackendManager::GetGlobalContext().is_wholly_supported_graph = true;
 
   } else {  // unsupported_nodes_idx.empty()
-   
+
     std::vector<NodeIndex> modified_unsupported_nodes;
     for (const auto& node_idx : graph_viewer_.GetNodesInTopologicalOrder()) {
       if (find(unsupported_nodes.begin(), unsupported_nodes.end(), node_idx) != unsupported_nodes.end()) {
@@ -160,7 +160,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
           if(data_ops_->SpecialConditionForClusterSizeOne(ng_required_initializers, node))
             continue;
         }
-      }  
+      }
 
       std::vector<std::string> cluster_graph_inputs, cluster_inputs, const_inputs, cluster_outputs;
 
@@ -180,7 +180,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             }
           }
         }
-      
+
         if (node->OpType() == "Conv" || node->OpType() == "Identity") {
           auto output_name = node->OutputDefs()[0]->Name();
           auto it = find(cluster_outputs.begin(), cluster_outputs.end(), output_name);
@@ -189,7 +189,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             break;
           }
         }
-        
+
         std::map<std::string, int> slice_map;
         if (node->OpType() == "Slice") {
           auto input = node->InputDefs()[0];
@@ -225,7 +225,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
   }
 
   return result;
-} 
+}
 
 }
 }

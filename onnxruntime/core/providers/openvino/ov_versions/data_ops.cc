@@ -18,7 +18,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <ngraph/ngraph.hpp>
-#include <ngraph/frontend/onnx_import/onnx.hpp>
+// #include <ngraph/frontend/onnx_import/onnx.hpp>
 #if defined(_MSC_VER)
 #pragma warning(default : 4244 4245)
 #elif __GNUC__
@@ -50,7 +50,7 @@ std::set<std::string> ops_supported_only_in_model = {
       "Shape",
       "Split",
       "TopK"
-}; 
+};
 
 std::vector<SupportedOp> supported_op_mode = {
     {"Abs", V_2020_4,{"CPU", "GPU"}},
@@ -226,11 +226,11 @@ void DataOps::populate_op_mode_supported() {
   subgraph_supported_.push_back({"Identity", V_2021_1,{"CPU"}});
   subgraph_supported_.push_back({"Div", V_2021_1,{"CPU"}});
   subgraph_supported_.push_back({"Sub", V_2021_1,{"CPU"}});
-    
-  
+
+
   //populate unsupportedmode_t
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},  
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet&) {
       for (size_t i = 0; i < node->InputDefs().size(); i++) {
         if (node->InputDefs()[i]->TypeAsProto()->tensor_type().elem_type() != ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT)
@@ -249,10 +249,10 @@ void DataOps::populate_op_mode_supported() {
         auto last_index_arg = attributes.count("select_last_index") > 0 ? attributes.at("select_last_index").i() : 0;
         if (last_index_arg != 0)
           return true;
-        // tensor type supports float as input for argmax and argmin  
+        // tensor type supports float as input for argmax and argmin
         if (node->InputDefs()[0]->TypeAsProto()->tensor_type().elem_type() != ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT)
           return true;
-        return false;  
+        return false;
       }
     };
     op_list_.insert({"ArgMax", obj});
@@ -287,11 +287,11 @@ void DataOps::populate_op_mode_supported() {
       }
     };
     op_list_.insert({"AveragePool", obj});
-  }   
+  }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet&) {
-      //Only float 16, float and double data types are supported 
+      //Only float 16, float and double data types are supported
       const bool data_is_float = node->InputDefs()[0]->Type()->find("float") != std::string::npos;
       const bool data_is_float16 = node->InputDefs()[0]->Type()->find("float16") != std::string::npos;
       const bool data_is_double = node->InputDefs()[0]->Type()->find("double") != std::string::npos;
@@ -300,7 +300,7 @@ void DataOps::populate_op_mode_supported() {
     };
     op_list_.insert({"Clip", obj});
   }
-  {  
+  {
     UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet& initializers) {
       if (GetInputCount(node, initializers) > 1)
@@ -310,22 +310,22 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"Conv", obj});
     op_list_.insert({"ConvTranspose", obj});
   }
-  {  
+  {
     UnsupportedOpMode obj = {{V_2021_1,V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet& ) {
        auto& attributes = node->GetAttributes();
       if (attributes.count("auto_pad") == 0 || attributes.at("auto_pad").s() == "") {
         return true;
-      }  
+      }
       return false;
      } };
     op_list_.insert({"Conv", obj});
     op_list_.insert({"ConvTranspose", obj});
   }
-  {  
-    UnsupportedOpMode obj = {{V_2021_2}, 
+  {
+    UnsupportedOpMode obj = {{V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet& ) {
-      if (device_id_.find("MYRIAD") != std::string::npos) { 
+      if (device_id_.find("MYRIAD") != std::string::npos) {
         const auto& input_arg = node->InputDefs()[0];
         auto shape = input_arg->Shape();
         if ((shape != nullptr) && (shape->dim(0).value_case() != shape->dim(0).kDimValue)) {
@@ -345,14 +345,14 @@ void DataOps::populate_op_mode_supported() {
         } else if (node->InputDefs().size() == 4) {
           return initializers.find(node->InputDefs()[2]->Name()) == initializers.end() ||
              initializers.find(node->InputDefs()[3]->Name()) == initializers.end();
-        } 
+        }
         return false;
       }
     };
   op_list_.insert({"ConvInteger", obj});
   }
   {
-      UnsupportedOpMode obj = {{V_2020_4,V_2021_1}, 
+      UnsupportedOpMode obj = {{V_2020_4,V_2021_1},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
         using onnx_dtype = ONNX_NAMESPACE::TensorProto_DataType;
       auto supportedOps = std::set<std::vector<onnx_dtype>>{
@@ -377,8 +377,8 @@ void DataOps::populate_op_mode_supported() {
         onnx_dtype input_1_data_type = (ONNX_NAMESPACE::TensorProto_DataType)node->InputDefs()[1]->TypeAsProto()->tensor_type().elem_type();
         onnx_dtype output_data_type = (ONNX_NAMESPACE::TensorProto_DataType)node->OutputDefs()[0]->TypeAsProto()->tensor_type().elem_type();
         const std::vector<onnx_dtype> typePair{output_data_type, input_0_data_type, input_1_data_type};
-        const auto match = supportedOps.find(typePair); 
-        if (match == supportedOps.end()) 
+        const auto match = supportedOps.find(typePair);
+        if (match == supportedOps.end())
           return true;
         else
         return false;
@@ -416,15 +416,15 @@ void DataOps::populate_op_mode_supported() {
         auto output_it = find(graph_outputs.begin(), graph_outputs.end(), output);
         if (input_it != graph_inputs.end() && output_it != graph_outputs.end())
           return true;
-        return false;  
+        return false;
       }
     };
     op_list_.insert({"Identity", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet&) {
-      //MaxPool "indices" output is not currently supported.  
+      //MaxPool "indices" output is not currently supported.
       if (node->OutputDefs().size() > 1)
         return true;
       const auto& attributes = node->GetAttributes();
@@ -434,10 +434,10 @@ void DataOps::populate_op_mode_supported() {
         return true;
       auto auto_attr = attributes.find("auto_pad");
       //auto pad null value is not supported
-      if (auto_attr->second().s() == "") 
+      if (auto_attr->second().s() == "")
         return true;
-      // dilations attrs are not supported in nGraph  
-      if (attributes.find("dilations") != attributes.end()) 
+      // dilations attrs are not supported in nGraph
+      if (attributes.find("dilations") != attributes.end())
         return true;
       return(!this->dimension_unsupported(node));
     }
@@ -445,12 +445,12 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"MaxPool", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2021_2}, 
+    UnsupportedOpMode obj = {{V_2021_2},
      [this](const Node* node, const Provider_InitializedTensorSet& initializers) {
         if (device_id_.find("MYRIAD") == std::string::npos) {
           if (GetInputCount(node, initializers) == 1)
             return true;
-        }    
+        }
         return false;
       }
     };
@@ -460,18 +460,18 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"Sum", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1},
      [this](const Node* node, const Provider_InitializedTensorSet& initializers) {
         if (GetInputCount(node, initializers) == 1)
           return true;
-        return false;  
+        return false;
      }
     };
     op_list_.insert({"Mean", obj});
     op_list_.insert({"Sum", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1},
      [this](const Node* node, const Provider_InitializedTensorSet& initializers) {
         if (GetInputCount(node, initializers) == 1)
           return true;
@@ -486,7 +486,7 @@ void DataOps::populate_op_mode_supported() {
     };
     op_list_.insert({"Max", obj});
     op_list_.insert({"Min", obj});
-  } 
+  }
   {
       UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
@@ -571,13 +571,13 @@ void DataOps::populate_op_mode_supported() {
         const bool B_is_int64 = node->InputDefs()[1]->Type()->find("int64") != std::string::npos;
         if((A_is_int32 && B_is_int32) || (A_is_int64 && B_is_int64))
           return true;
-        return false;  
+        return false;
       }
     };
     op_list_.insert({"Pow", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1,V_2021_2},
       [this](const Node* node, const Provider_InitializedTensorSet& initializers) {
         auto slope = node->InputDefs()[1];
         //PRelu slope has to be an initializer or needs to come from a constant node
@@ -585,7 +585,7 @@ void DataOps::populate_op_mode_supported() {
           return false;
         else {
           for (auto input_node = node->InputNodesBegin(); input_node != node->InputNodesEnd(); ++input_node) {
-            if (GetInputCount(this->graph_viewer_.GetNode((*input_node).Index()), initializers) == 0) 
+            if (GetInputCount(this->graph_viewer_.GetNode((*input_node).Index()), initializers) == 0)
              return false;
           } }
         return true;
@@ -608,7 +608,7 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"QLinearMatMul", obj});
   }
   {
-      UnsupportedOpMode obj = {{V_2020_4,V_2021_1}, 
+      UnsupportedOpMode obj = {{V_2020_4,V_2021_1},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
         //Only FP32, INT32 and U8 data types are supported
         const bool data_is_float = node->InputDefs()[0]->Type()->find("float") != std::string::npos;
@@ -620,29 +620,29 @@ void DataOps::populate_op_mode_supported() {
       op_list_.insert({"ReduceMin", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_1}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_1},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
         //Resize opset 11 is not supported
         if (node->InputDefs().size() > 2)
           return true;
         return false;
-      }  
+      }
     };
     op_list_.insert({"Resize", obj});
   }
   {
-     UnsupportedOpMode obj = {{V_2021_2}, 
+     UnsupportedOpMode obj = {{V_2021_2},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
         const auto& attributes = node->GetAttributes();
         auto axis_attr = attributes.find("axis");
         //Negative axis is not supported
         if (axis_attr->second().i() < 0)
           return true;
-        return false; 
-      } 
+        return false;
+      }
     };
     op_list_.insert({"Scatter", obj});
-    op_list_.insert({"ScatterElements", obj}); 
+    op_list_.insert({"ScatterElements", obj});
   }
   {
     UnsupportedOpMode obj = {{V_2020_4,V_2021_1, V_2021_2},
@@ -692,7 +692,7 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"TopK", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4,V_2021_2}, 
+    UnsupportedOpMode obj = {{V_2020_4,V_2021_2},
       [this](const Node* node, const Provider_InitializedTensorSet&) {
         return (!this->dimension_unsupported(node));
       }
@@ -729,7 +729,7 @@ void DataOps::populate_op_mode_supported() {
       } else {
         return true;
       }
-      }    
+      }
     };
     op_list_.insert({"Upsample", obj});
   }
@@ -742,7 +742,7 @@ void DataOps::populate_op_mode_supported() {
     } };
     op_list_.insert({"Where", obj});
   }
-}  
+}
 
 bool DataOps::op_is_supported(std::string name, std::vector<SupportedOp>& op_list) {
   for (size_t i=0; i < op_list.size(); i++) {
@@ -750,28 +750,28 @@ bool DataOps::op_is_supported(std::string name, std::vector<SupportedOp>& op_lis
       if (op_list[i].version <= version_id_) {
         auto it = op_list[i].device_type.begin();
         while (it != op_list[i].device_type.end()) {
-          
-          //if device supported is all then we support it 
+
+          //if device supported is all then we support it
           if(*it == "All") {
             return true;
-          } 
-          
+          }
+
           //check for device supported
           if (device_id_.find(*it) != std::string::npos) {
             return true;
           }
-          
+
           it++;
-        } 
+        }
       }
     }
   }
-  
+
   return false;
 }
 
 bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
-  
+
   const auto* type_proto = node_arg->TypeAsProto();
   if (!type_proto) {
     return false;
@@ -780,12 +780,12 @@ bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
   if (is_initializer) {
     auto dtype = type_proto->tensor_type().elem_type();
     for (auto const &var : supported_types_initializer_) {
-      if ((var.first <= version_id_) && 
+      if ((var.first <= version_id_) &&
           (var.second == dtype)) {
         return true;
       }
     }
-        
+
 #ifndef NDEBUG
     if (openvino_ep::backend_utils::IsDebugEnabled()) {
       std::cout << "Initializer Data Type is not supported" << std::endl;
@@ -793,27 +793,27 @@ bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
 #endif
     return false;
   } else {
-    
+
     auto dtype = type_proto->tensor_type().elem_type();
 
     if (device_id_ == "MYRIAD" || device_id_ == "HDDL" || device_id_.find("HETERO") != std::string::npos || device_id_.find("MULTI") != std::string::npos) {
       for (auto const &var : supported_types_vpu_) {
-        if ((var.first <= version_id_) && 
+        if ((var.first <= version_id_) &&
             (var.second == dtype)) {
           return true;
         }
       }
-      
+
 #ifndef NDEBUG
     if (openvino_ep::backend_utils::IsDebugEnabled()) {
       std::cout << "I/O data type is not supported" << std::endl;
     }
 #endif
     return false;
-      
+
     } else if (device_id_ == "CPU") {
       for (auto const &var : supported_types_cpu_) {
-        if ((var.first <= version_id_) && 
+        if ((var.first <= version_id_) &&
             (var.second == dtype)) {
           return true;
         }
@@ -824,13 +824,13 @@ bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
         }
       #endif
         return false;
-      
+
     } else if (device_id_ == "GPU") {
       auto prec_str = openvino_ep::BackendManager::GetGlobalContext().precision_str;
       if (prec_str == "FP32" && dtype == ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT16)
         return false;
       for (auto const &var : supported_types_gpu_) {
-        if ((var.first <= version_id_) && 
+        if ((var.first <= version_id_) &&
             (var.second == dtype)) {
           return true;
         }
@@ -841,7 +841,7 @@ bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
         }
       #endif
         return false;
-      
+
     }
     return true;
   }
@@ -884,9 +884,8 @@ bool DataOps::dimension_unsupported(const Node* node) {
   return true;
 }
 
-bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string>>& op_map,
-                                const NodeIndex node_idx) {
-  
+bool DataOps::node_is_supported(const NodeIndex node_idx) {
+
   const auto& node = graph_viewer_.GetNode(node_idx);
   const auto& optype = node->OpType();
 
@@ -985,23 +984,24 @@ bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string
   }
 
   //Check 3b
-  const auto opset = op_map.find(domain);
-  if (opset == op_map.end() || opset->second.find(optype) == opset->second.end()) {
-    return false;
-  } else {
-    return true;
-  }
+  // const auto opset = op_map.find(domain);
+  // if (opset == op_map.end() || opset->second.find(optype) == opset->second.end()) {
+  //   return false;
+  // } else {
+  //   return true;
+  // }
+  return true;
 
 }
 
-std::vector<NodeIndex> DataOps::GetUnsupportedNodeIndices(std::unordered_set<std::string>& ng_required_initializers) {  
+std::vector<NodeIndex> DataOps::GetUnsupportedNodeIndices(std::unordered_set<std::string>& ng_required_initializers) {
 
-    const auto ng_supported_ops = GetNgSupportedOps(GetOnnxOpSet(graph_viewer_));
+    // const auto ng_supported_ops = GetNgSupportedOps(GetOnnxOpSet(graph_viewer_));
 
     std::vector<NodeIndex> unsupported_nodes_idx;
 
     for (const auto& node_idx : graph_viewer_.GetNodesInTopologicalOrder()) {
-      if (node_is_supported(ng_supported_ops, node_idx)) {
+      if (node_is_supported(node_idx)) {
         // Collect inputs that are initializers
         graph_viewer_.GetNode(node_idx)->ForEachDef([&ng_required_initializers, this](const NodeArg& node_arg, bool is_input) {
             if(is_input && this->graph_viewer_.GetAllInitializedTensors().count(node_arg.Name())) {
@@ -1011,7 +1011,7 @@ std::vector<NodeIndex> DataOps::GetUnsupportedNodeIndices(std::unordered_set<std
         unsupported_nodes_idx.push_back(node_idx);
       }
     }
-    return unsupported_nodes_idx;        
+    return unsupported_nodes_idx;
 }
 
 bool DataOps::IsOpSupportedOnlyInModel(std::string name) {
