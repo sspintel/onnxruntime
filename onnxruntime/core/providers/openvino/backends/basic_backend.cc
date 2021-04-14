@@ -12,7 +12,9 @@
 #include "core/providers/shared_library/provider_api.h"
 
 #include "../backend_utils.h"
+#if (defined OPENVINO_2020_3)
 #include <ngraph/frontend/onnx_import/onnx.hpp>
+#endif
 #include <ngraph/pass/constant_folding.hpp>
 
 #include "basic_backend.h"
@@ -133,7 +135,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
         }
 
         //to check preprocessing inside model
-        config["MYRIAD_CHECK_PREPROCESSING_INSIDE_MODEL"] = CONFIG_VALUE(NO);
+        //config["MYRIAD_CHECK_PREPROCESSING_INSIDE_MODEL"] = CONFIG_VALUE(NO);
     #else
         if (subgraph_context_.set_vpu_config) {
           config["VPU_DETECT_NETWORK_BATCH"] = CONFIG_VALUE(NO);

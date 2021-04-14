@@ -14,7 +14,9 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <ngraph/ngraph.hpp>
+#if (defined OPENVINO_2020_3)
 #include <ngraph/frontend/onnx_import/onnx.hpp>
+#endif
 #if defined(_MSC_VER)
 #pragma warning(default : 4244 4245)
 #elif __GNUC__
