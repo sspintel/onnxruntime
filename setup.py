@@ -169,7 +169,7 @@ try:
                 file = glob(path.join(self.dist_dir, '*linux*.whl'))[0]
                 logger.info('repairing %s for manylinux1', file)
                 try:
-                    subprocess.run(['auditwheel', 'repair', '-w', self.dist_dir, file], check=True, stdout=subprocess.PIPE)
+                    subprocess.run(['auditwheel', '-v', 'repair', '-w', self.dist_dir, file], check=True, stdout=subprocess.PIPE)
                 finally:
                     logger.info('removing %s', file)
                     remove(file)
@@ -225,10 +225,19 @@ if is_manylinux:
             'onnxruntime.capi.onnxruntime_pybind11_state',
             ['onnxruntime/capi/onnxruntime_pybind11_state_manylinux1.so'],
         ),
+        # Extension(
+        #     name='onnxruntime.ov_libs',
+        #     library_dirs=['/opt/intel/openvino_2021/deployment_tools/inference_engine/lib/intel64','/opt/intel/openvino_2021/deployment_tools/ngraph/lib'],
+        #     libraries=['cache.json','onnx_importer.so','clDNNPlugin.so','tbbbind.so','HeteroPlugin.so','tbbbind.so.2','hwloc.so.5','tbbmalloc_proxy.so','inference_engine_c_api.so','tbbmalloc_proxy.so.2','inference_engine_ir_reader.so','libtbbmalloc.so','libinference_engine_legacy.so','libtbbmalloc.so.2','libinference_engine_lp_transformations.so','libtbb_preview.so','libinference_engine_onnx_reader.so','libtbb_preview.so.2','libinference_engine_preproc.so','libtbb.so','libinference_engine.so','libtbb.so.2','libinference_engine_transformations.so','myriad_compile','libMKLDNNPlugin.so','myriad_perfcheck','libMultiDevicePlugin.so','pcie-ma2x8x.mvcmd','libmyriadPlugin.so','plugins.xml','libngraph.so','usb-ma2x8x.mvcmd'])
+        # )
     ]
 else:
     data = [path.join('capi', x) for x in libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = []
+
+# if package_name == 'onnxruntime-openvino':
+    # packages += ["onnxruntime.ov_libs"]
+    # extra += ['ov_libs']
 
 # Additional examples
 examples_names = ["mul_1.onnx", "logreg_iris.onnx", "sigmoid.onnx"]
