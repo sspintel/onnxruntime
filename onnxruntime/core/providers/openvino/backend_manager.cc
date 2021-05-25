@@ -28,6 +28,7 @@ void BackendManager::ReleaseGlobalContext() {
 
 BackendManager::BackendManager(const Node* fused_node, const logging::Logger& logger) {
   auto prec_str = GetGlobalContext().precision_str;
+  std::cout << "$$$$$prec_str: " << prec_str << std::endl;
   if (prec_str == "FP32") {
     subgraph_context_.precision = InferenceEngine::Precision::FP32;
   } else if (prec_str == "FP16") {

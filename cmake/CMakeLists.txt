@@ -1332,6 +1332,10 @@ if(onnxruntime_USE_OPENVINO)
     add_definitions(-DOPENVINO_CONFIG_MYRIAD=1)
   endif()
 
+  if(onnxruntime_USE_OPENVINO_GNA)
+    add_definitions(-DOPENVINO_CONFIG_GNA=1)
+  endif()
+
   if(onnxruntime_USE_OPENVINO_GPU_FP32)
     add_definitions(-DOPENVINO_CONFIG_GPU_FP32=1)
   endif()

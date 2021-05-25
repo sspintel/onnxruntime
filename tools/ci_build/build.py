@@ -76,7 +76,7 @@ _check_python_version()
 
 
 def _openvino_verify_device_type(device_read):
-    choices = ["CPU_FP32", "GPU_FP32", "GPU_FP16", "VAD-M_FP16", "MYRIAD_FP16", "VAD-F_FP32"]
+    choices = ["CPU_FP32", "GPU_FP32", "GPU_FP16", "VAD-M_FP16", "MYRIAD_FP16", "VAD-F_FP32", "GNA_FP32"]
     status_hetero = True
     res = False
     if (device_read in choices):
@@ -88,7 +88,7 @@ def _openvino_verify_device_type(device_read):
         if (len(comma_separated_devices) < 2):
             print("At least two devices required in Hetero Mode")
             status_hetero = False
-        dev_options = ["CPU", "GPU", "MYRIAD", "FPGA", "HDDL"]
+        dev_options = ["CPU", "GPU", "MYRIAD", "FPGA", "HDDL", "GNA"]
         for dev in comma_separated_devices:
             if (dev not in dev_options):
                 status_hetero = False
@@ -99,7 +99,7 @@ def _openvino_verify_device_type(device_read):
         print("specify the keyword HETERO or MULTI followed by the devices ")
         print("in the order of priority you want to build" + "\n")
         print("The different hardware devices that can be added in HETERO or MULTI")
-        print("are ['CPU','GPU','MYRIAD','FPGA','HDDL']" + "\n")
+        print("are ['CPU','GPU','MYRIAD','FPGA','HDDL','GNA']" + "\n")
         print("An example of how to specify the hetero build type. Ex: HETERO:GPU,CPU" + "\n")
         print("An example of how to specify the MULTI build type. Ex: MULTI:MYRIAD,CPU" + "\n")
         sys.exit("Wrong Build Type selected")
@@ -780,6 +780,8 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
         cmake_args += ["-Donnxruntime_USE_OPENVINO=ON",
                        "-Donnxruntime_USE_OPENVINO_MYRIAD=" + (
                            "ON" if args.use_openvino == "MYRIAD_FP16" else "OFF"),
+                       "-Donnxruntime_USE_OPENVINO_GNA=" + (
+                           "ON" if args.use_openvino == "GNA_FP32" else "OFF"),
                        "-Donnxruntime_USE_OPENVINO_GPU_FP32=" + (
                            "ON" if args.use_openvino == "GPU_FP32" else "OFF"),
                        "-Donnxruntime_USE_OPENVINO_GPU_FP16=" + (

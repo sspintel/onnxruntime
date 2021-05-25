@@ -42,6 +42,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
   std::ifstream blob_path;
   std::string ov_compiled_blobs_dir = "";
 
+  std::cout << "!!!!!!!!Inside Basic_backend.cc and the hw_target is: " << hw_target << std::endl;
   if(hw_target == "MYRIAD" && global_context_.use_compiled_network == true) {
     if(!openvino_ep::backend_utils::UseCompiledNetwork()) {
       std::size_t model_index = global_context_.onnx_model_path_name.find_last_of("/\\");
