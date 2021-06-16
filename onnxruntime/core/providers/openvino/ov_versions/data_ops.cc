@@ -28,6 +28,7 @@
 namespace onnxruntime {
 namespace openvino_ep {
 
+//Ops which are supported only in models(as intermediate nodes) and not in unit tests
 std::set<std::string> ops_supported_only_in_model = {
     "Cast",
     "Concat",
@@ -51,7 +52,8 @@ std::set<std::string> ops_supported_only_in_model = {
     "Shape",
     "Split",
     "Tile",
-    "TopK"};
+    "TopK",
+    "QuantizeLinear"};
 
 std::vector<SupportedOp> supported_op_mode = {
     {"Abs", V_2020_4, {"CPU", "GPU"}},
@@ -337,7 +339,27 @@ void DataOps::populate_op_mode_supported() {
   }
   {
     UnsupportedOpMode obj = {{V_2021_4},
-                             [this](const Node*, const InitializedTensorSet& ) {
+                             [this](const Node* node, const InitializedTensorSet& ) {
+                               if (device_id_.find("MYRIAD") != std::string::npos) {
+                                  const auto& attributes = node->GetAttributes();
+                                  auto conv_filter = attributes.find("kernel_shape");
+                                  auto& ints = conv_filter->second().ints();
+                                  //If the kernel size is not 2D, the op is rejected in case of MYRIAD
+                                  if(ints.size() !=2) {
+                                    return true;
+                                  }
+                               }
+                               return false;
+                             }};
+    op_list_.insert({"Conv", obj});
+  }
+  {
+    UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3, V_2021_4},
+                             [this](const Node* node, const InitializedTensorSet&) {
+                               auto& attributes = node->GetAttributes();
+                               if (attributes.count("auto_pad") == 0 || attributes.at("auto_pad").s() == "") {
+                                 return true;
+                               }
                                return false;
                              }};
     op_list_.insert({"Conv", obj});
@@ -353,21 +375,26 @@ void DataOps::populate_op_mode_supported() {
   }
   {
     UnsupportedOpMode obj = {{V_2021_4},
-                             [this](const Node* , const InitializedTensorSet& ) {
+                             [this](const Node* node, const InitializedTensorSet& initializers) {
+                               if (device_id_.find("MYRIAD") != std::string::npos) {
+                                 if (GetInputCount(node, initializers) > 1)
+                                  return true;
+                               }
                                return false;
                              }};
     op_list_.insert({"ConvTranspose", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3, V_2021_4},
-                             [this](const Node* node, const InitializedTensorSet&) {
-                               auto& attributes = node->GetAttributes();
-                               if (attributes.count("auto_pad") == 0 || attributes.at("auto_pad").s() == "") {
-                                 return true;
-                               }
+    UnsupportedOpMode obj = {{V_2021_4},
+                             [this](const Node* node, const InitializedTensorSet& ) {
+                               //tensor type does not support output_shape
+                               const auto& attributes = node->GetAttributes();
+                               auto out_shape_attr = attributes.find("output_shape");
+                               if (out_shape_attr != attributes.end())
+                                  return true;
                                return false;
                              }};
-    op_list_.insert({"Conv", obj});
+    op_list_.insert({"ConvTranspose", obj});
   }
   {
     UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3, V_2021_4},
@@ -468,7 +495,6 @@ void DataOps::populate_op_mode_supported() {
                                if (indices_arg->TypeAsProto()->tensor_type().elem_type() != output_arg->TypeAsProto()->tensor_type().elem_type())
                                  return true;
                                if ((indices_arg->TypeAsProto()->tensor_type().elem_type() == ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT16) ||
-                                   (indices_arg->TypeAsProto()->tensor_type().elem_type() == ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_UINT8) ||
                                    (indices_arg->TypeAsProto()->tensor_type().elem_type() == ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT)) {
                                  return false;
                                }
@@ -717,6 +743,21 @@ void DataOps::populate_op_mode_supported() {
                                return false;
                              }};
     op_list_.insert({"Resize", obj});
+  }
+  {
+    UnsupportedOpMode obj = {{V_2021_4},
+                             [this](const Node* node, const InitializedTensorSet&) {
+                               if (device_id_.find("MYRIAD") != std::string::npos) {
+                                 const auto& input_arg = node->InputDefs()[1];
+                                 for (const auto& dim : input_arg->Shape()->dim()) {
+                                    if (utils::HasDimValue(dim) && dim.dim_value() == 0) {
+                                      return true;
+                                  }
+                                 }
+                               }
+                               return false;
+                             }};
+    op_list_.insert({"Reshape", obj});
   }
   {
     UnsupportedOpMode obj = {{V_2021_2, V_2021_3, V_2021_4},
