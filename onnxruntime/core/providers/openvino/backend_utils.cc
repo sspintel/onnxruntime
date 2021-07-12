@@ -100,6 +100,7 @@ struct static_cast_int64 {
 std::shared_ptr<InferenceEngine::CNNNetwork>
 CreateCNNNetwork(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext& global_context, const SubGraphContext& subgraph_context, std::map<std::string, std::shared_ptr<ngraph::Node>>& const_outputs_map) {
   std::shared_ptr<ngraph::Function> ng_function;
+  std::cout << "CreateNgraphFunc" << std::endl;
 
 #ifndef NDEBUG
   if (IsDebugEnabled()) {
