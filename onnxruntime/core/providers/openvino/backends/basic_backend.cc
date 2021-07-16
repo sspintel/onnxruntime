@@ -82,8 +82,15 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
     std::unordered_map<std::string, int> new_names;
     for(auto output_name: subgraph_context_.output_names)
     {
-      auto OV_name = ie_cnn_network_->getOVNameForTensor(output_name.first);
-      new_names[OV_name] = output_name.second;
+      try
+      {
+        auto OV_name = ie_cnn_network_->getOVNameForTensor(output_name.first);
+        new_names[OV_name] = output_name.second;
+      }
+      catch(...)
+      {
+        new_names[output_name.first] = output_name.second;
+      }
     }
     subgraph_context_.output_names = new_names;
     // End of Replacement
@@ -131,8 +138,15 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
       std::unordered_map<std::string, int> new_names;
       for(auto output_name: subgraph_context_.output_names)
       {
-        auto OV_name = ie_cnn_network_->getOVNameForTensor(output_name.first);
-        new_names[OV_name] = output_name.second;
+        try
+        {
+          auto OV_name = ie_cnn_network_->getOVNameForTensor(output_name.first);
+          new_names[OV_name] = output_name.second;
+        }
+        catch(...)
+        {
+          new_names[output_name.first] = output_name.second;
+        }
       }
       subgraph_context_.output_names = new_names;
       // End of Replacement
