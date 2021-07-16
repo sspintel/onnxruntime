@@ -54,11 +54,11 @@ OpenVINOExecutionProvider::OpenVINOExecutionProvider(const OpenVINOExecutionProv
 }
 
 std::vector<std::unique_ptr<ComputeCapability>>
-std::cout << "In the OpenVINO EP" << std::endl;
 OpenVINOExecutionProvider::GetCapability(const GraphViewer& graph_viewer, const std::vector<const KernelRegistry*>& kernel_registries) const {
   ORT_UNUSED_PARAMETER(kernel_registries);
 
   std::vector<std::unique_ptr<ComputeCapability>> result;
+  std::cout << "In the OpenVINO EP" << std::endl;
   openvino_ep::BackendManager::GetGlobalContext().onnx_model_name = graph_viewer.Name();
 #ifdef _WIN32
   std::wstring onnx_path = graph_viewer.ModelPath().ToPathString();
