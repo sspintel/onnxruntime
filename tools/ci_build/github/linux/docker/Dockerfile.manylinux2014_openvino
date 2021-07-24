@@ -111,12 +111,12 @@ RUN cd /opt/libusb-1.0.22 && \
     cp /opt/intel/openvino_2021/deployment_tools/inference_engine/external/97-myriad-usbboot.rules /etc/udev/rules.d/  && \
     ldconfig
 
-RUN mkdir /onnxruntime /mytemp
+# RUN mkdir /onnxruntime /mytemp
 # Install onnxruntime
-# WORKDIR /
+WORKDIR /
 # RUN mkdir mytemp
-# RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO}
-# WORKDIR /onnxruntime
+RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO}
+WORKDIR /onnxruntime
 # RUN source scl_source enable devtoolset-7
-CMD source /opt/intel/openvino_2021/bin/setupvars.sh && cd /onnxruntime && ./build.sh --config Release --update --build --parallel --use_openvino ${DEVICE}  --build_wheel
+CMD source scl_source enable devtoolset-7; source /opt/intel/openvino_2021/bin/setupvars.sh && cd /onnxruntime && ./build.sh --config Release --update --build --parallel --use_openvino ${DEVICE}  --build_wheel
 # RUN  cd onnxruntime && /opt/python/cp36-cp36m/bin/python3 ./tools/ci_build/build.py --build_dir /home/onnxruntimedev/build --config Release --update --build --parallel --use_openvino CPU_FP32 --build_shared_lib --build_wheel --cmake_extra_defines PYTHON_INCLUDE_DIR=/opt/python/cp36-cp36m/include/python3.6m/  PYTHON_LIBRARY=/usr/lib64/librt.so
