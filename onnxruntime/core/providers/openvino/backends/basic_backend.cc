@@ -244,7 +244,7 @@ void BasicBackend::CompleteAsyncInference(Ort::CustomOpApi& ort, OrtKernelContex
 void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
   // Preliminary Thread safety mechanism
   // currently allows a maximum of 8 Infer request's to paralelly execute at the same time
-
+  clock_t start, end;
   LOGS_DEFAULT(INFO) << log_tag << "Running graph " << subgraph_context_.subgraph_name;
   LOGS_DEFAULT(INFO) << log_tag << "In Infer";
 
@@ -266,6 +266,10 @@ void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
       //Requesting for an idle infer_request from a pool of infer_requests_
       std::shared_ptr<InferenceEngine::InferRequest> infer_request;
       try {
+      // warming up - out of scope
+      /* Recording the starting clock tick.*/
+      start = clock();
+
       infer_request = inferRequestsQueue_->getIdleRequest();
 	    } catch (const Exception& e) {
       ORT_THROW(log_tag + " No idle Infer Requests found from the infer_requests_ pool! " + e.what());
@@ -274,7 +278,17 @@ void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
       }
       StartAsyncInference(ort, context, infer_request);
       CompleteAsyncInference(ort, context, infer_request);
-  
+
+      // Recording the end clock tick.
+      end = clock();
+      //std::cout << " start sec " << start << std::endl;
+      //std::cout << " end sec " << end << std::endl;
+      // Calculating total time taken by the program.
+      double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+      std::cout << "The first inference time took (ms) : "
+         << time_taken * 1000 << std::setprecision(5);
+      std::cout << " milliseconds " << std::endl;
+
       // Get Output tensors
       LOGS_DEFAULT(INFO) << log_tag << "Inference successful";
       //Enable CI Logs
