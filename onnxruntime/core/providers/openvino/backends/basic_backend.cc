@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <inference_engine.hpp>
+#include <vpux/vpux_plugin_config.hpp>
 
 #include "core/providers/shared_library/provider_api.h"
 
@@ -19,6 +20,7 @@
 
 #include "basic_backend.h"
 #include "../backend_manager.h"
+
 
 namespace onnxruntime {
 namespace openvino_ep {
@@ -146,6 +148,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
         }
     #endif
       }
+      config["VPUX_PLATFORM"] = VPUX_CONFIG_VALUE(VPU3700);
       try {
         exe_network_ = global_context_.ie_core.LoadNetwork(*ie_cnn_network_, hw_target, config);
       } catch (const InferenceEngine::details::InferenceEngineException& e) {
