@@ -16,6 +16,7 @@ using Exception = InferenceEngine::details::InferenceEngineException;
 #endif
 
 #include <ngraph/frontend/onnx_import/onnx.hpp>
+#endif
 #include <ngraph/pass/convert_fp32_to_fp16.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 
@@ -261,10 +262,23 @@ GetOutputTensor(Ort::CustomOpApi& ort, OrtKernelContext* context, size_t batch_s
   for (size_t j = 0; j < num_dims; j++) {
     output_shape[j] = static_cast<int64_t>(graph_output_dims[j]);
   }
+  
+  // Output Names
   auto it = output_names.find(output_name);
+
+  auto itr = output_names.begin();
+
+  while (itr != output_names.end()) {
+      std::cout << "output_name in list" << itr->first << "\n";   
+      itr++; 
+  } 
+
+  std::cout << "output name" << output_name << "\n";
+
   if (it == output_names.end()) {
     ORT_THROW(log_tag + "Output names mismatch between OpenVINO and ONNX");
   }
+
   int index = it->second;
 
   output_tensor = ort.KernelContext_GetOutput(context, index, output_shape.get(), num_dims);
@@ -279,6 +293,18 @@ GetOutputTensor(Ort::CustomOpApi& ort, OrtKernelContext* context,
                 std::shared_ptr<ngraph::Node> node) {
   OrtValue* output_tensor;
   auto it = output_names.find(output_name);
+
+  std::cout << "output_name" << output_name << "\n";
+
+  auto itr = output_names.begin();
+  
+  while (itr != output_names.end()) {
+    std::cout << itr->first << "\t";
+    itr++;
+  }
+
+  std::cout << "end of output" << "\n";
+
   if (it == output_names.end()) {
     ORT_THROW(log_tag + "Output names mismatch between OpenVINO and ONNX");
   }

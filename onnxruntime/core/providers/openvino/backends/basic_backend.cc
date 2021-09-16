@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <inference_engine.hpp>
+#include <vpux/vpux_plugin_config.hpp>
 
 #ifdef OPENVINO_2021_4
 using Exception = InferenceEngine::Exception;
@@ -26,6 +27,7 @@ using WaitMode = InferenceEngine::IInferRequest::WaitMode;
 #include "basic_backend.h"
 #include "../backend_manager.h"
 
+
 namespace onnxruntime {
 namespace openvino_ep {
 
@@ -42,7 +44,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
   std::ifstream blob_path;
   std::string ov_compiled_blobs_dir = "";
 
-  if(hw_target == "MYRIAD" && global_context_.use_compiled_network == true) {
+  if((hw_target == "MYRIAD" || hw_target == "VPUX") && global_context_.use_compiled_network == true) {
     if(!openvino_ep::backend_utils::UseCompiledNetwork()) {
       std::size_t model_index = global_context_.onnx_model_path_name.find_last_of("/\\");
       std::string model_name= global_context_.onnx_model_path_name.substr(model_index+1);
@@ -139,6 +141,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
       config["MYRIAD_CHECK_PREPROCESSING_INSIDE_MODEL"] = CONFIG_VALUE(NO);
     #endif
       }
+      config["VPUX_PLATFORM"] = VPUX_CONFIG_VALUE(VPU3700);
       try {
         exe_network_ = global_context_.ie_core.LoadNetwork(*ie_cnn_network_, hw_target, config);
       } catch (const Exception& e) {
