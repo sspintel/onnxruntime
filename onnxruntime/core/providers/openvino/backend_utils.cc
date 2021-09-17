@@ -16,7 +16,6 @@ using Exception = InferenceEngine::details::InferenceEngineException;
 #endif
 
 #include <ngraph/frontend/onnx_import/onnx.hpp>
-#endif
 #include <ngraph/pass/convert_fp32_to_fp16.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 
