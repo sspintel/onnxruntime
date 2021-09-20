@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import {InferenceSession, Tensor} from 'onnxruntime-common';
+import {Env, InferenceSession, Tensor} from 'onnxruntime-common';
 
-import {WebGLFlags} from '../lib/backend-onnxjs';
-import {WebAssemblyFlags} from '../lib/backend-wasm';
 import {Attribute} from '../lib/onnxjs/attribute';
 import {Logger} from '../lib/onnxjs/instrument';
 
@@ -84,7 +82,7 @@ export declare namespace Test {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-namespace
-  export namespace WhiteList {
+  export namespace TestList {
     export type TestName = string;
     export interface TestDescription {
       name: string;
@@ -94,15 +92,15 @@ export declare namespace Test {
   }
 
   /**
-   * The data schema of a whitelist file.
-   * A whitelist should only be applied when running suite test cases (suite0)
+   * The data schema of a testlist file.
+   * A testlist should only be applied when running suite test cases (suite0)
    */
-  export interface WhiteList {
-    [backend: string]: {[group: string]: readonly WhiteList.Test[]};
+  export interface TestList {
+    [backend: string]: {[group: string]: readonly TestList.Test[]};
   }
 
   /**
-   * Represent ONNX.js global options
+   * Represent ONNX Runtime Web global options
    */
   export interface Options {
     debug?: boolean;
@@ -111,9 +109,8 @@ export declare namespace Test {
     cudaOptions?: InferenceSession.CudaExecutionProviderOption;
     cudaFlags?: Record<string, unknown>;
     wasmOptions?: InferenceSession.WebAssemblyExecutionProviderOption;
-    wasmFlags?: WebAssemblyFlags;
     webglOptions?: InferenceSession.WebGLExecutionProviderOption;
-    webglFlags?: WebGLFlags;
+    globalEnvFlags?: Env;
   }
 
   /**

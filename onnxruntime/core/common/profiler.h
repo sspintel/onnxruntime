@@ -51,7 +51,7 @@ class Profiler {
   /*
   Produce current time point for any profiling action.
   */
-  TimePoint Now() const;
+  TimePoint StartTime() const;
 
   /*
   Whether data collection and output from this profiler is enabled.
@@ -75,12 +75,6 @@ class Profiler {
   void EndTimeAndRecordEvent(EventCategory category,
                              const std::string& event_name,
                              const TimePoint& start_time,
-                             const std::initializer_list<std::pair<std::string, std::string>>& event_args = {},
-                             bool sync_gpu = false);
-
-  void EndTimeAndRecordEvent(EventCategory category,
-                             const std::string& event_name,
-                             const TimePoint& start_time, const TimePoint& end_time,
                              const std::initializer_list<std::pair<std::string, std::string>>& event_args = {},
                              bool sync_gpu = false);
 
@@ -115,13 +109,6 @@ class Profiler {
   }
 
  private:
-  void EndTimeAndRecordEvent(EventCategory category,
-                             const std::string& event_name,
-                             long long duration,         //duration of the op
-                             long long time_from_start,  //time difference between op start time and profiler start time
-                             const std::initializer_list<std::pair<std::string, std::string>>& event_args,
-                             bool sync_gpu = false);
-
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(Profiler);
 
   /**
@@ -134,7 +121,16 @@ class Profiler {
   // Mutex controlling access to profiler data
   OrtMutex mutex_;
   bool enabled_{false};
+#if defined(__wasm__)
+  /*
+   * The simplest way to emit profiling data in WebAssembly is to print out to console,
+   * since browsers can't access to a file system directly.
+   * TODO: Consider MEMFS or IndexedDB instead of console.
+   */
+  std::ostream& profile_stream_{std::cout};
+#else
   std::ofstream profile_stream_;
+#endif
   std::string profile_stream_file_;
   const logging::Logger* session_logger_{nullptr};
   const logging::Logger* custom_logger_{nullptr};

@@ -11,7 +11,7 @@
 #include "core/common/logging/logging.h"
 #include "core/common/status.h"
 #include "core/framework/iexecutor.h"
-#include "core/framework/ml_value.h"
+#include "core/framework/ort_value.h"
 #include "core/framework/node_index_info.h"
 #include "core/framework/sequential_execution_plan.h"
 #include "core/framework/tensor.h"
@@ -19,6 +19,7 @@
 
 namespace onnxruntime {
 
+class DataTransferManager;
 class SessionState;
 class OrtValueNameIdxMap;
 class OrtValuePatternPlanner;
@@ -35,6 +36,7 @@ class IExecutionFrame {
 
   void Init(const std::vector<int>& feed_mlvalue_idxs, const std::vector<OrtValue>& feeds,
             const std::unordered_map<int, OrtValue>& initializers,
+            const std::function<bool(const std::string& name)>& is_initializer_sparse_func,
             const std::vector<OrtValue>& fetches);
 
  public:
@@ -53,7 +55,8 @@ class IExecutionFrame {
   // Override the index-th output with ort_value
   Status SetOutputMLValue(int index, const OrtValue& ort_value);
   void UpdateFeeds(const std::vector<int>& feed_mlvalue_idxs, const std::vector<OrtValue>& feeds);
-  void UpdateFetches(const std::vector<int>& fetch_mlvalue_idxs, const std::vector<OrtValue>& fetches, const std::unordered_map<int, OrtValue>& initializers);
+  void UpdateFetches(const std::vector<int>& fetch_mlvalue_idxs, const std::vector<OrtValue>& fetches,
+                     const std::unordered_map<int, OrtValue>& initializers);
   Status GetOutputs(const std::vector<int>& fetch_mlvalue_idxs, std::vector<OrtValue>& fetches);
 #endif
 
@@ -61,11 +64,11 @@ class IExecutionFrame {
   // This method is not thread safe!
   // Return S_OK and nullptr if index map to an value that is an unused optional input/output
   // Shape is required for tensors but not traditional ML values.
-  Status GetOrCreateNodeOutputMLValue(const int index, int output_arg_index, const TensorShape* shape, 
-                                      OrtValue*& p_ort_value, const Node& node, size_t nnz = 0);
+  Status GetOrCreateNodeOutputMLValue(const int index, int output_arg_index, const TensorShape* shape,
+                                      OrtValue*& p_ort_value, const Node& node);
 
   // This function try retrieve the inferred shapes for the given NodeArg index.
-  // If the retrival is sucessful, this function returns true and false otherwise.
+  // If the retrieval is successful, this function returns true and false otherwise.
   virtual bool TryGetInferredShape(int index, TensorShape& shape) const;
 
   /**
@@ -97,21 +100,17 @@ class IExecutionFrame {
     return all_values_[ort_value_index];
   }
 
-  void VerifyOutputSizes(int output_index, const onnxruntime::Node& node,
-                         const onnxruntime::TensorShape* output_shape);
-
-  virtual const logging::Logger* GetLogger() = 0;
+  // optional function that can check if the requested output_shape matched what was specified/inferred
+  // for the node.
+  virtual void VerifyOutputSizes(int /*output_index*/, const Node& /*node*/, const TensorShape& /*output_shape*/) {}
 
   virtual AllocatorPtr GetAllocatorImpl(const OrtMemoryInfo& info) const = 0;
 
-  virtual Status CreateNodeOutputMLValueImpl(OrtValue& ort_value, int ort_value_idx, const TensorShape* shape,
-                                             size_t nnz) = 0;
+  virtual Status CreateNodeOutputMLValueImpl(OrtValue& ort_value, int ort_value_idx, const TensorShape* shape) = 0;
 
   virtual Status CopyTensor(const Tensor& src, Tensor& dest) const = 0;
 
-  virtual bool IsAllocatedExternally(int /*ort_value_idx*/) {
-    return false;
-  }
+  virtual const DataTransferManager& GetDataTransferManager() const = 0;
 
   const NodeIndexInfo& node_index_info_;
 
@@ -123,6 +122,8 @@ class IExecutionFrame {
   const size_t all_values_size_;
 
   std::vector<int> fetch_mlvalue_idxs_;
+
+  const OrtValueNameIdxMap& ort_value_idx_map_;
 };
 
 class ExecutionFrame final : public IExecutionFrame {
@@ -157,6 +158,7 @@ class ExecutionFrame final : public IExecutionFrame {
   // If the retrival is sucessful, this function returns true and false otherwise.
   bool TryGetInferredShape(int index, TensorShape& shape) const override;
 
+#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
   // Return the size of virtual memory allocated in runtime.
   // The memory is usually used for activations in forward and backward passes.
   const std::unordered_map<std::string, size_t>& GetDynamicMemorySizeInfo() {
@@ -176,18 +178,19 @@ class ExecutionFrame final : public IExecutionFrame {
     //   std::unique_lock<std::mutex> lock(mtx_);
     return static_activation_memory_sizes_in_byte_;
   }
+  #endif
 
  private:
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(ExecutionFrame);
 
-  const logging::Logger* GetLogger() override;
   AllocatorPtr GetAllocatorImpl(const OrtMemoryInfo& info) const override;
   Status ReleaseMLValueImpl(int ort_value_idx) override;
-  Status CreateNodeOutputMLValueImpl(OrtValue& ort_value, int ort_value_idx, const TensorShape* shape, size_t nnz) override;
+  Status CreateNodeOutputMLValueImpl(OrtValue& ort_value, int ort_value_idx, const TensorShape* shape) override;
+  void VerifyOutputSizes(int output_index, const Node& node, const TensorShape& output_shape) override;
   Status CopyTensor(const Tensor& src, Tensor& dest) const override;
+  const DataTransferManager& GetDataTransferManager() const override;
 
-  common::Status AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_value_index, const TensorShape* shape,
-                                             size_t nnz);
+  common::Status AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_value_index, const TensorShape* shape);
 
   Status AllocateMLValueTensorSelfOwnBufferHelper(OrtValue& ort_value, int ort_value_index, MLDataType element_type,
                                                   const OrtMemoryInfo& location, const TensorShape& shape,
@@ -200,8 +203,6 @@ class ExecutionFrame final : public IExecutionFrame {
   void TraceFree(int ort_value_idx);
 
   const AllocPlanPerValue& GetAllocationPlan(int ort_value_idx);
-
-  bool IsAllocatedExternally(int ort_value_idx) override;
 
   const SessionState& session_state_;
 
@@ -223,9 +224,10 @@ class ExecutionFrame final : public IExecutionFrame {
   // Given the input shapes of the executed graph, ExecutionFrame tries inferring
   // all symbolic shapes. inferred_shapes_[i] is the shape of OrtValue indexed
   // by i, if the key i exists.
-  // inferred_shapes_ is generated togehter with mem_patterns_.
+  // inferred_shapes_ is generated together with mem_patterns_.
   std::unordered_map<int, TensorShape> inferred_shapes_;
 
+#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
   // Size of virtual memory allocated before any kernel execution.
   // This field is not physical memory size.
   // static_activation_memory_sizes_in_byte_[location] is the static memory consumption on "location".
@@ -240,5 +242,6 @@ class ExecutionFrame final : public IExecutionFrame {
   // Mutex which should be acquired when executing non-thread-safe member functions.
   // A current example is the tracker of dynamic memory allocation.
   mutable std::mutex mtx_;
+#endif
 };
 }  // namespace onnxruntime

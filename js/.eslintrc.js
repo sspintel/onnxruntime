@@ -1,6 +1,11 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+'use strict';
+
 module.exports = {
   root: true,
-  ignorePatterns: ['**/*.js', 'node_modules/', 'types/'],
+  ignorePatterns: ['**/*.js', 'node_modules/', 'types/', 'dist/'],
   env: { 'es6': true },
   parser: '@typescript-eslint/parser',
   parserOptions: { 'project': 'tsconfig.json', 'sourceType': 'module' },
@@ -14,7 +19,9 @@ module.exports = {
       ], 2
     ],
     'import/no-extraneous-dependencies': ['error', { 'devDependencies': false }],
-    'import/no-internal-modules': 'error',
+    'import/no-internal-modules': ['error', {
+      'allow': ['**/lib/**'],
+    }],
     'import/no-unassigned-import': 'error',
     '@typescript-eslint/array-type': ['error', { 'default': 'array-simple' }],
     '@typescript-eslint/await-thenable': 'error',
@@ -43,7 +50,7 @@ module.exports = {
     '@typescript-eslint/no-inferrable-types': 'error',
     '@typescript-eslint/no-misused-new': 'error',
     '@typescript-eslint/no-namespace': ['error', { 'allowDeclarations': true }],
-    '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-require-imports': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
     '@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
@@ -62,7 +69,7 @@ module.exports = {
     'eqeqeq': ['error', 'smart'],
     'guard-for-in': 'error',
     'id-match': 'error',
-    'max-len': ['error', { 'code': 120 }],
+    'max-len': ['error', { 'code': 120, 'ignorePattern': '^import\\s.+\\sfrom\\s.+;$' }],
     'new-parens': 'error',
     'no-bitwise': 'error',
     'no-caller': 'error',
@@ -121,7 +128,6 @@ module.exports = {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',
       'camelcase': 'off',
       'prefer-arrow/prefer-arrow-functions': 'off',
@@ -141,7 +147,6 @@ module.exports = {
       // TODO: those rules are useful. should turn on them in future (webgl refactor)
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',
       '@typescript-eslint/restrict-plus-operands': 'off',
@@ -153,6 +158,24 @@ module.exports = {
   }, {
     files: ['web/lib/wasm/binding/**/*.ts'], rules: {
       '@typescript-eslint/naming-convention': 'off'
+    }
+  }, {
+    files: ['react_native/example/src/**/*.ts', 'react_native/example/src/**/*.tsx'], rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      'unicorn/filename-case': 'off',
+      'no-invalid-this': 'off',
+      'no-console': 'off'
+    }
+  }, {
+    files: ['react_native/lib/**/*.ts'], rules: {
+      '@typescript-eslint/naming-convention': 'off'
+    }
+  }, {
+    files: ['react_native/scripts/**/*.ts'], rules: {
+      'import/no-extraneous-dependencies': 'off',
+      'prefer-arrow/prefer-arrow-functions': 'off',
+      'no-console': 'off'
     }
   }],
   extends: [

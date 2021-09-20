@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import {flags} from '../../backend-onnxjs';
+import {env} from 'onnxruntime-common';
 import {Backend, SessionHandler} from '../backend';
 import {Logger} from '../instrument';
 import {Session} from '../session';
@@ -19,31 +19,38 @@ export class WebGLBackend implements Backend {
   glContext: WebGLContext;
 
   get contextId(): 'webgl'|'webgl2'|undefined {
-    return flags.contextId;
+    return env.webgl.contextId;
   }
   set contextId(value: 'webgl'|'webgl2'|undefined) {
-    flags.contextId = value;
+    env.webgl.contextId = value;
   }
 
   get matmulMaxBatchSize(): number|undefined {
-    return flags.matmulMaxBatchSize;
+    return env.webgl.matmulMaxBatchSize;
   }
   set matmulMaxBatchSize(value: number|undefined) {
-    flags.matmulMaxBatchSize = value;
+    env.webgl.matmulMaxBatchSize = value;
   }
 
   get textureCacheMode(): 'initializerOnly'|'full'|undefined {
-    return flags.textureCacheMode;
+    return env.webgl.textureCacheMode;
   }
   set textureCacheMode(value: 'initializerOnly'|'full'|undefined) {
-    flags.textureCacheMode = value;
+    env.webgl.textureCacheMode = value;
   }
 
   get pack(): boolean|undefined {
-    return flags.pack;
+    return env.webgl.pack;
   }
   set pack(value: boolean|undefined) {
-    flags.pack = value;
+    env.webgl.pack = value;
+  }
+
+  get async(): boolean|undefined {
+    return env.webgl.async;
+  }
+  set async(value: boolean|undefined) {
+    env.webgl.async = value;
   }
 
   initialize(): boolean {
@@ -58,10 +65,17 @@ export class WebGLBackend implements Backend {
       if (typeof this.pack !== 'boolean') {
         this.pack = false;
       }
+      if (typeof this.async !== 'boolean') {
+        this.async = false;
+      }
+
+      Logger.setWithEnv(env);
+
       Logger.verbose(
           'WebGLBackend',
           `Created WebGLContext: ${typeof this.glContext} with matmulMaxBatchSize: ${
-              this.matmulMaxBatchSize}; textureCacheMode: ${this.textureCacheMode}; pack: ${this.pack}.`);
+              this.matmulMaxBatchSize}; textureCacheMode: ${this.textureCacheMode}; pack: ${this.pack}; async: ${
+              this.async}.`);
       return true;
     } catch (e) {
       Logger.warning('WebGLBackend', `Unable to initialize WebGLBackend. ${e}`);
