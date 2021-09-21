@@ -421,16 +421,10 @@ typedef struct OrtOpenVINOProviderOptions {
   const char* device_type;
   unsigned char enable_vpu_fast_compile;  ///< 0 = disabled, nonzero = enabled
   const char* device_id;
-<<<<<<< HEAD
   size_t num_of_threads;  // 0 uses default number of threads
   unsigned char use_compiled_network; // 0 = false, nonzero = true
   const char* blob_dump_path; // path is set to empty by default
   unsigned char disable_graph_partition; // 0 = false, nonzero = true
-=======
-  size_t num_of_threads;               ///< 0 = Use default number of threads
-  unsigned char use_compiled_network;  ///< 0 = disabled, nonzero = enabled
-  const char* blob_dump_path;          // path is set to empty by default
->>>>>>> master
 } OrtOpenVINOProviderOptions;
 
 struct OrtApi;
