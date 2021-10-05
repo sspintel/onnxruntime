@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <inference_engine.hpp>
+#include <gpu/gpu_config.hpp>
 
 #ifdef OPENVINO_2021_4
 using Exception = InferenceEngine::Exception;
@@ -25,6 +26,8 @@ using WaitMode = InferenceEngine::IInferRequest::WaitMode;
 
 #include "basic_backend.h"
 #include "../backend_manager.h"
+#include "remote_blob_helpers.h"
+
 
 namespace onnxruntime {
 namespace openvino_ep {
@@ -166,9 +169,56 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
   inferRequestsQueue_ = std::unique_ptr<InferRequestsQueue>(new InferRequestsQueue(exe_network_, nireq));
 }
 
+void BasicBackend::StartRemoteAsyncInference(Ort::CustomOpApi& ort, OrtKernelContext* context, std::shared_ptr<InferenceEngine::InferRequest> infer_request) {
+ 
+  auto cldnn_context = exe_network_.GetContext();
+  cl_context ctx = std::dynamic_pointer_cast<InferenceEngine::gpu::ClContext>(cldnn_context)->get();
+  auto ocl_instance = std::make_shared<OpenCL>(ctx);
+  cl_int err;
+
+  auto graph_input_info = exe_network_.GetInputsInfo();
+  for (auto input_info_iter = graph_input_info.begin();
+       input_info_iter != graph_input_info.end(); ++input_info_iter) {
+    // Get OpenVINO's input buffer
+    std::string input_name = input_info_iter->first;
+    const OrtValue* tensor = ort.KernelContext_GetInput(context, subgraph_context_.input_names.at(input_name));
+    // Copy input data into OpenVINO's input buffer
+    const char* tensor_data = ort.GetTensorData<char>(tensor);
+     
+    try {
+      size_t input_data_size = infer_request->GetBlob(input_name)->byteSize();
+      cl::Buffer shared_buffer(ocl_instance->_context, CL_MEM_READ_WRITE, input_data_size, NULL, &err);
+      {
+        void *buffer = (void *)tensor_data;
+        ocl_instance->_queue.enqueueWriteBuffer(shared_buffer, true, 0, input_data_size, buffer);
+      }
+
+      InferenceEngine::Blob::Ptr shared_blob = InferenceEngine::gpu::make_shared_blob(input_info_iter->second->getTensorDesc(), cldnn_context, shared_buffer);
+      infer_request->SetBlob(input_name, shared_blob);
+    } catch (const Exception& e) {
+      ORT_THROW(log_tag + " Cannot access IE Blob for input: " + input_name + e.what());
+    } catch (...) {
+      ORT_THROW(log_tag + " Cannot access IE Blob for input: " + input_name);
+    }
+    //auto precision = input_info_iter->second->getPrecision();
+    //size_t batch_slice = 0;
+    //FillInputBlob(graph_input_blob, batch_slice, input_name, ort, context, precision, subgraph_context_);
+  }
+  // Start Async inference
+  try {
+    infer_request->StartAsync();
+  } catch (const Exception& e) {
+    ORT_THROW(log_tag + " Couldn't start Inference: " + e.what());
+  } catch (...) {
+    ORT_THROW(log_tag + " Couldn't start Inference");
+  }
+
+}
+
 // Starts an asynchronous inference request for data in slice indexed by batch_slice_idx on
 // an Infer Request indexed by infer_req_idx
 void BasicBackend::StartAsyncInference(Ort::CustomOpApi& ort, OrtKernelContext* context, std::shared_ptr<InferenceEngine::InferRequest> infer_request) {
+  
   auto graph_input_info = exe_network_.GetInputsInfo();
 
   for (auto input_info_iter = graph_input_info.begin();
@@ -272,7 +322,11 @@ void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
 	    } catch (...) {
       ORT_THROW(log_tag + "No idle Infer Requests!");
       }
-      StartAsyncInference(ort, context, infer_request);
+      if (global_context_.device_type.find("GPU") != std::string::npos) {
+        StartRemoteAsyncInference(ort, context, infer_request); 
+      } else {
+        StartAsyncInference(ort, context, infer_request);
+      }
       CompleteAsyncInference(ort, context, infer_request);
   
       // Get Output tensors

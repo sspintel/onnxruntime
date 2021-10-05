@@ -24,6 +24,7 @@ struct GlobalContext {
   std::string onnx_model_name;
   std::string onnx_model_path_name;
   int onnx_opset_version;
+  //void *remote_context = 0;
 };
 
 // Holds context specific to subgraph.
