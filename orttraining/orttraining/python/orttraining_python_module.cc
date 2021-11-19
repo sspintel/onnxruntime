@@ -73,6 +73,13 @@ bool GetProviderInstanceHash(const std::string& type,
     hash = 0;
     return true;
   }
+  else if (type == kOpenVINOExecutionProvider){
+#ifdef USE_OPENVINO
+    // for CPU, only 1 instance
+    hash = 0;
+    return true;
+#endif
+  }
   else if (type == kCudaExecutionProvider){
 #ifdef USE_CUDA
   if(auto* cuda_provider_info = TryGetProviderInfo_CUDA()){

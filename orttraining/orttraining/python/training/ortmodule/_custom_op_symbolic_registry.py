@@ -85,6 +85,7 @@ def multinomial(g, self, num_samples, replacement=False, generator=None):
     return g.op("com.microsoft::ATenOp", self, num_samples, replacement, generator,
                 name_s='aten::multinomial')
 
+"""
 @register_symbolic('max_pool2d')
 def max_pool2d(g, self, kernel_size, stride, padding, dilation, ceil_mode):
     stride_val = sym_help._maybe_get_const(stride, 'is')
@@ -92,7 +93,7 @@ def max_pool2d(g, self, kernel_size, stride, padding, dilation, ceil_mode):
         stride = kernel_size
     return g.op("com.microsoft::ATenOp", self, kernel_size, stride, padding, dilation, ceil_mode,
                 name_s='aten::max_pool2d_with_indices', outputs=2)[0]
-
+"""
 
 @register_symbolic('unfold')
 def unfold(g, input, dimension, size, step):
@@ -103,7 +104,7 @@ def unfold(g, input, dimension, size, step):
 def argmax(g, input, dim, keepdim):
     return g.op("com.microsoft::ATenOp", input, dim, keepdim, name_s='aten::argmax')
 
-
+"""
 @register_symbolic('avg_pool2d')
 def avg_pool2d(g, self, kernel_size, stride, padding, ceil_mode, count_include_pad, divisor_override):
     stride_val = sym_help._maybe_get_const(stride, 'is')
@@ -116,7 +117,7 @@ def avg_pool2d(g, self, kernel_size, stride, padding, ceil_mode, count_include_p
 @register_symbolic('adaptive_avg_pool2d')
 def adaptive_avg_pool2d(g, self, output_size):
     return g.op("com.microsoft::ATenOp", self, output_size, name_s='aten::_adaptive_avg_pool2d')
-
+"""
 
 @register_symbolic('binary_cross_entropy_with_logits')
 def binary_cross_entropy_with_logits(g, self, target, weight, pos_weight, reduction):
