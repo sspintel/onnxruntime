@@ -160,5 +160,6 @@ class InferenceManager(GraphExecutionManager):
         """Creates an InferenceAgent that can run forward graph on an inference model"""
 
         session_options, providers, provider_options = self._get_session_config()
+        print("Execution provider:", providers)
         self._execution_agent = InferenceAgent(self._onnx_models.optimized_model.SerializeToString(),
                                                session_options, providers, provider_options)
