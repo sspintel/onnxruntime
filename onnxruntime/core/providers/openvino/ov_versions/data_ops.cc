@@ -341,29 +341,6 @@ void DataOps::populate_op_mode_supported() {
                                     return true;
                                   }
                                }
-                               //If the device is GPU
-                               if (device_id_.find("GPU") != std::string::npos) {
-                                  bool if_bias = false;
-                                  const auto& attributes = node->GetAttributes();
-                                  auto conv_filter = attributes.find("kernel_shape");
-                                  if (conv_filter != attributes.end()) {
-                                  auto& ints = conv_filter->second().ints();
-                                  //check if the Input for the op has bias
-                                   if(node->InputDefs().size() > 2) {
-                                     if(node->InputDefs()[2]->Name() == "B")
-                                       if_bias = true;
-                                   }
-                                  //If the kernel size is 1D and the input has bias and the output precision is FP32, the op is rejected.
-                                  if(ints.size() == 1 && if_bias) {
-                                    auto output_data_type = node->OutputDefs()[0]->TypeAsProto()->tensor_type().elem_type();
-                                    if (output_data_type == ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT)
-                                      return true;
-                                  }
-                                  //If the kernel size is 3D and the input doesnot have bias, the op is rejected in case of GPU
-                                  if(ints.size() == 3 && !if_bias)
-                                    return true;
-                                  }
-                                }
                                 return false;
                              }};
     op_list_.insert({"Conv", obj});
@@ -395,51 +372,6 @@ void DataOps::populate_op_mode_supported() {
                                  if (GetInputCount(node, initializers) > 1)
                                   return true;
                                }
-                               bool if_bias = false;
-                               const auto& attributes = node->GetAttributes();
-                               auto out_shape_attr = attributes.find("output_shape");
-
-                               // If the device is GPU
-                               if (device_id_.find("GPU") != std::string::npos) {
-                                 auto conv_filter = attributes.find("kernel_shape");
-                                 if (conv_filter != attributes.end()) {
-                                   auto& kernel_size = conv_filter->second().ints();
-
-                                   //If 3D convolution, reject the op
-                                   if(kernel_size.size() == 3)
-                                     return true;
-                                   //In 1D conv, if the pads are asymmetric, then the op is rejected
-                                   if(kernel_size.size() == 1) {
-                                     if (attributes.count("pads") > 0) {
-                                     auto& pads_attr = attributes.at("pads");
-                                     auto int_size = pads_attr.ints_size();
-                                     if (int_size > 1 && (pads_attr.ints(0) != pads_attr.ints(1)))
-                                       return true;
-                                     }
-                                   }
-                                   //check if the Input for the op has bias
-                                   if(node->InputDefs().size() > 2) {
-                                     if(node->InputDefs()[2]->Name() == "B")
-                                       if_bias = true;
-                                   }
-                                   //If the kernel size is 2D, the input has no bias, the padding is 0 and the op has dilations, the op is rejected
-                                   if(kernel_size.size() == 2 && !if_bias) {
-                                     if (attributes.count("pads") > 0) {
-                                     auto& pads_attr = attributes.at("pads");
-                                     auto int_size = pads_attr.ints_size();
-                                     // comparing if all the 4 values in the padding are equal to 1
-                                     if (int_size == 4 && (pads_attr.ints(0) == pads_attr.ints(1) == pads_attr.ints(2) == pads_attr.ints(3))) {
-                                       if(pads_attr.ints(0) == 1)
-                                           return false;
-                                     }
-                                     // If the op has dilations as an attribute after the above checks, then the op is rejected.
-                                     auto dilation_attr = attributes.find("dilations");
-                                     if (dilation_attr != attributes.end())
-                                       return true;
-                                     }
-                                   }
-                                  }
-                                 }
                                  return false;
                              }};
     op_list_.insert({"ConvTranspose", obj});
