@@ -368,17 +368,6 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"ConvTranspose", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2021_4},
-                             [this](const Node* node, const InitializedTensorSet& initializers) {
-                               if (device_id_.find("MYRIAD") != std::string::npos) {
-                                 if (GetInputCount(node, initializers) > 1)
-                                  return true;
-                               }
-                                 return false;
-                             }};
-    op_list_.insert({"ConvTranspose", obj});
-  }
-  {
     UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3, V_2021_4},
                              [this](const Node* node, const InitializedTensorSet&) {
                                auto& attributes = node->GetAttributes();
