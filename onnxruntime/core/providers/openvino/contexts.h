@@ -21,9 +21,6 @@ struct GlobalContext {
   std::string blob_dump_path;
   std::vector<bool> deviceAvailableList = {true, true, true, true, true, true, true, true};
   std::vector<std::string> deviceTags = {"0", "1", "2", "3", "4", "5", "6", "7"};
-  std::string onnx_model_name;
-  std::string onnx_model_path_name;
-  int onnx_opset_version;
   void *context = 0;
 };
 

@@ -9,13 +9,8 @@
 
 #include <inference_engine.hpp>
 
-#ifdef OPENVINO_2021_4
 using Exception = InferenceEngine::Exception;
-#else
-using Exception = InferenceEngine::details::InferenceEngineException;
-#endif
 
-#include <ngraph/frontend/onnx_import/onnx.hpp>
 #include <ngraph/pass/convert_fp32_to_fp16.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 
@@ -39,7 +34,6 @@ void DumpOnnxModelProto(const ONNX_NAMESPACE::ModelProto& model_proto, std::stri
   std::fstream outfile(file_name, std::ios::out | std::ios::trunc | std::ios::binary);
   model_proto.SerializeToOstream(outfile);
 }
-
 #endif
 
 bool IsCILogEnabled() {
@@ -56,48 +50,6 @@ bool UseCompiledNetwork() {
     return true;
   }
   return false;
-}
-
-std::string GetCurrentWorkingDir() {
-  std::string curr_dir;
-  ORT_UNUSED_PARAMETER(curr_dir);
-  char buff[FILENAME_MAX];
-  curr_dir = GetCurrentDir(buff, FILENAME_MAX);
-  std::string current_working_dir(buff);
-  return current_working_dir;
-}
-
-bool IsDirExists(const std::string& pathname) {
-  struct stat info;
-  if(stat(pathname.c_str(), &info) != 0) {
-    LOGS_DEFAULT(INFO) << log_tag << "cannot access pathname: " << pathname;
-	  return false;
-  } else if(info.st_mode & S_IFDIR) {
-      LOGS_DEFAULT(INFO) << log_tag << "pathname exists: " << pathname;
-	    return true;
-  } else {
-      LOGS_DEFAULT(INFO) << log_tag << "pathname: " << pathname << ": doesn't contain the directory 'ov_compiled_blobs' ";
-  }
-  return false;
-}
-
-void CreateDirectory(const std::string& ov_compiled_blobs_dir) {
-  LOGS_DEFAULT(INFO) << log_tag << "'ov_compiled_blobs' directory doesn't exist at the executable path, so creating one";
-#if defined(_WIN32)
-  if (_mkdir(ov_compiled_blobs_dir.c_str()) == 0) { // Creating a directory 
-	  LOGS_DEFAULT(INFO) << log_tag << "created a directory named 'ov_compiled_blobs' at the executable path";
-  } else {
-    LOGS_DEFAULT(INFO) << log_tag << "Error creating a directory named 'ov_compiled_blobs' at the executable path";
-    throw std::runtime_error("Could not create the directory");
-  }
-#else
-  if (mkdir(ov_compiled_blobs_dir.c_str(), 0777) == 0) { // Creating a directory
-    LOGS_DEFAULT(INFO) << log_tag << "created a directory named 'ov_compiled_blobs' at the executable path";
-  } else {
-    LOGS_DEFAULT(INFO) << log_tag << "Error creating a directory named 'ov_compiled_blobs' at the executable path";
-    throw std::runtime_error("Could not create the directory");
-  }
-#endif
 }
 
 struct static_cast_int64 {
@@ -120,18 +72,6 @@ CreateCNNNetwork(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalCont
   }
 #endif
 
-#if (defined OPENVINO_2021_2) || (defined OPENVINO_2021_3)
-  ORT_UNUSED_PARAMETER(const_outputs_map);
-  std::istringstream model_stream{model_proto.SerializeAsString()};
-  try {
-    ng_function = ngraph::onnx_import::import_onnx_model(model_stream);
-    LOGS_DEFAULT(INFO) << "ONNX Import Done";
-  } catch (const std::exception& exp) {
-    ORT_THROW(log_tag + "[OpenVINO-EP] Exception while importing model to nGraph Func: " + std::string(exp.what()));
-  } catch (...) {
-    ORT_THROW(log_tag + "[OpenVINO-EP] Unknown exception while importing model to nGraph Func");
-  }
-#else
   //ReadNetwork() API flow will be used in OpenVINO-EP starting from OpenVINO 2021.4
   InferenceEngine::CNNNetwork cnn_network;
   const std::string model = model_proto.SerializeAsString();
@@ -145,7 +85,7 @@ CreateCNNNetwork(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalCont
     ORT_THROW(log_tag + "[OpenVINO-EP] Unknown exception while Reading network");
   }
   ng_function = cnn_network.getFunction();
-#endif
+
 
   if (global_context.device_type.find("GPU") != std::string::npos &&
       subgraph_context.precision == InferenceEngine::Precision::FP16) {
