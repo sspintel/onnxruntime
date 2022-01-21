@@ -93,6 +93,7 @@ std::vector<SupportedOp> supported_op_mode = {
     {"Erf", V_2020_4, {"All"}},
     {"Exp", V_2020_4, {"All"}},
     {"Expand", V_2021_1, {"MYRIAD"}},
+    {"Expand", V_2021_4, {"GPU"}},
     {"Flatten", V_2020_4, {"All"}},
     {"Floor", V_2020_4, {"All"}},
     {"Gather", V_2020_4, {"All"}},
@@ -148,6 +149,7 @@ std::vector<SupportedOp> supported_op_mode = {
     {"Round", V_2021_4, {"All"}},
     {"Scatter", V_2021_1, {"MYRIAD"}},
     {"ScatterElements", V_2021_2, {"MYRIAD"}},
+    {"ScatterND", V_2021_4, {"GPU"}},
     {"Selu", V_2020_4, {"CPU", "GPU"}},
     {"Shape", V_2020_4, {"All"}},
     {"Sigmoid", V_2020_4, {"All"}},
@@ -172,7 +174,9 @@ std::vector<SupportedOp> supported_op_mode = {
     {"TopK", V_2020_4, {"All"}},
     {"Unsqueeze", V_2020_4, {"All"}},
     {"Upsample", V_2021_1, {"CPU"}},
+    {"Upsample", V_2021_4, {"All"}},
     {"Where", V_2021_2, {"MYRIAD"}},
+    {"Where", V_2021_4, {"GPU"}},
 };
 
 void DataOps::populate_types_supported() {
@@ -207,7 +211,7 @@ void DataOps::populate_types_supported() {
   supported_types_gpu_.insert(std::make_pair(V_2021_1, ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_FLOAT16));
   supported_types_gpu_.insert(std::make_pair(V_2021_4, ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_INT8));
   supported_types_gpu_.insert(std::make_pair(V_2021_4, ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_UINT8));
-
+  supported_types_gpu_.insert(std::make_pair(V_2021_4, ONNX_NAMESPACE::TensorProto_DataType::TensorProto_DataType_BOOL));
 }
 
 void DataOps::populate_op_mode_supported() {
@@ -241,6 +245,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"ReduceMax", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"QuantizeLinear", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"DequantizeLinear", V_2021_4, {"All"}});
+  no_dimension_supported_.push_back({"Shape", V_2021_4, {"GPU"}});
   
 
   subgraph_supported_.push_back({"Mul", V_2020_4, {"All"}});
@@ -1082,6 +1087,10 @@ bool DataOps::dimension_unsupported(const Node* node) {
     if (node->OpType() == "Unsqueeze") {
       auto& attributes = node->GetAttributes();
       int64_t axes_size = attributes.count("axes") > 0 ? attributes.at("axes").ints().size() : 0;
+      if (device_id_.find("GPU") != std::string::npos) {
+        if (axes_size == 0)
+          return true;
+      }
       if (input_dims + axes_size > 5 || axes_size == 0)
         return false;
     }
@@ -1089,6 +1098,10 @@ bool DataOps::dimension_unsupported(const Node* node) {
     if (node->OpType() == "ReduceSum") {
       auto& attributes = node->GetAttributes();
       int64_t axes_size = attributes.count("axes") > 0 ? attributes.at("axes").ints().size() : 0;
+      if (device_id_.find("GPU") != std::string::npos) {
+        if (axes_size == 0)
+          return true;
+      }
       if (axes_size == 0)
         return false;
     }
@@ -1168,6 +1181,10 @@ bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string
           if (utils::HasDimValue(dim) && dim.dim_value() == 0) {
             if ((device_id_.find("MYRIAD") != std::string::npos) && (optype == "Resize"))
               return;
+            if ((device_id_.find("GPU") != std::string::npos) && ((optype == "Expand") ||
+                (optype == "Slice") || (optype == "Concat") || (optype == "Shape"))) {
+                return;
+            }
             has_unsupported_dimension = true;
             return;
           }
