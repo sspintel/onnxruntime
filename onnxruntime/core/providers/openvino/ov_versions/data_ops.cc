@@ -1215,6 +1215,11 @@ bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string
   //Check 3b
   const auto opset = op_map.find(domain);
   if (opset == op_map.end() || opset->second.find(optype) == opset->second.end()) {
+#ifndef NDEBUG
+    if (openvino_ep::backend_utils::IsDebugEnabled()) {
+      std::cout << "Failed in Unsupported onnx model domain or the operator is not available in OpenVINO ngraph operators list" << std::endl;
+    }
+#endif
     return false;
   } else {
     return true;
