@@ -28,7 +28,7 @@ def register_symbolic(name, domain=''):
         return fn
     return symbolic_wrapper
 
-
+'''
 @register_symbolic('cross_entropy_loss')
 @parse_args('v', 'v', 'v', 'i', 'v', 'v')
 def cross_entropy_loss(g, self, target, weight, reduction, ignore_index, label_smoothing=0.0):
@@ -46,7 +46,7 @@ def cross_entropy_loss(g, self, target, weight, reduction, ignore_index, label_s
     output.setType(self.type())
     log_prob.setType(self.type())
     return output
-
+'''
 
 @register_symbolic('nll_loss')
 @parse_args('v', 'v', 'v', 'i', 'v')

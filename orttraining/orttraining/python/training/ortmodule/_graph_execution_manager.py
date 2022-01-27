@@ -272,8 +272,8 @@ class GraphExecutionManager(GraphExecutionInterface):
                 provider_option_map["gpu_external_empty_cache"] = str(self._torch_empty_cache)
             provider_options = [provider_option_map, {}]
         elif self._device.type == 'cpu':
-            #providers = ["OpenVINOExecutionProvider"]
-            providers = ["CPUExecutionProvider"]
+            providers = ["OpenVINOExecutionProvider"]
+            #providers = ["CPUExecutionProvider"]
             provider_options = [{}]
 
         session_options = onnxruntime.SessionOptions()
@@ -369,7 +369,8 @@ class GraphExecutionManager(GraphExecutionInterface):
                 required_export_kwargs = {'input_names': self._input_info.names,
                                           'output_names': output_names,
                                           'opset_version': ortmodule.ONNX_OPSET_VERSION,
-                                          'do_constant_folding': True}                                         
+                                          'do_constant_folding': True,
+                                          'dynamic_axes': self._input_info.dynamic_axes}
                 invalid_args = self._export_extra_kwargs.keys() & required_export_kwargs.keys()
                 assert len(invalid_args) == 0,\
                     f"The following PyTorch exporter arguments cannot be specified: '{invalid_args}'."
