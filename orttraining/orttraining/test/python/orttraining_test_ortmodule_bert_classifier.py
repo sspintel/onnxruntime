@@ -17,7 +17,8 @@ import datetime
 
 
 import onnxruntime
-from onnxruntime.training.ortmodule import ORTModule, DebugOptions
+#from onnxruntime.training.ortmodule import ORTModule, DebugOptions
+from onnxruntime.training.ortmodule import OVTorch, DebugOptions
 
 def train(model, optimizer, scheduler, train_dataloader, epoch, device, args):
     # ========================================
@@ -152,7 +153,6 @@ def test(model, validation_dataloader, device, args):
         # Telling the model not to compute or store gradients, saving memory and
         # speeding up validation
         with torch.no_grad():
-
             # Forward pass, calculate logit predictions.
             # This will return the logits rather than the loss because we have
             # not provided labels.
@@ -339,7 +339,12 @@ def main():
                         help='Number of hidden layers for the BERT model. A vanila BERT has 12 hidden layers (default: 1)')
     parser.add_argument('--data-dir', type=str, default='./cola_public/raw',
                         help='Path to the bert data directory')
-
+    parser.add_argument('--save-model', action='store_true', default=False,
+                        help='Path to save fine tuned model in current directory')
+    parser.add_argument('--predict', action='store_true', default=False,
+                        help='run inference')
+    parser.add_argument('--model', type=str, default=None,
+                        help='Path to saved model')
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
@@ -363,23 +368,30 @@ def main():
     # 3. Modeling
     # Load BertForSequenceClassification, the pretrained BERT model with a single
     # linear classification layer on top.
-    config = AutoConfig.from_pretrained(
-            "bert-base-uncased",
-            num_labels=2,
-            num_hidden_layers=args.num_hidden_layers,
-            output_attentions = False, # Whether the model returns attentions weights.
-            output_hidden_states = False, # Whether the model returns all hidden-states.
-    )
-    model = BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
-        config=config,
-    )
+    if not args.predict:
+        config = AutoConfig.from_pretrained(
+                "bert-base-uncased",
+                num_labels=2,
+                num_hidden_layers=args.num_hidden_layers,
+                output_attentions = False, # Whether the model returns attentions weights.
+                output_hidden_states = False, # Whether the model returns all hidden-states.
+        )
+        model = BertForSequenceClassification.from_pretrained(
+            "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
+            config=config,
+        )
+    else:
+        if os.path.exists(args.model):
+            model = torch.load(args.model)
+            print("Running prediction on validation dataset using fine-tuned model {}".format(args.model))
+        else:
+            raise ValueError('Invalid model path: %s' % args.model)
 
     if not args.pytorch_only:
         # Just for future debugging
         debug_options = DebugOptions(save_onnx=False, onnx_prefix='BertForSequenceClassification')
-
-        model = ORTModule(model, debug_options)
+        #model = ORTModule(model, debug_options)
+        model = OVTorch(model, debug_options)
 
     # Tell pytorch to run this model on the GPU.
     if torch.cuda.is_available() and not args.no_cuda:
@@ -409,17 +421,27 @@ def main():
 
     # 4. Train loop (fine-tune)
     total_training_time, total_test_time, epoch_0_training, validation_accuracy = 0, 0, 0, 0
-    for epoch_i in range(0, args.epochs):
-        total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
-        if not args.pytorch_only and epoch_i == 0:
-            epoch_0_training = total_training_time
-        test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-        total_test_time += test_time
+    if not args.predict:
+        for epoch_i in range(0, args.epochs):
+            total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
+            if not args.pytorch_only and epoch_i == 0:
+                epoch_0_training = total_training_time
+            test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+            total_test_time += test_time
+
+    if args.save_model:
+        torch.save(model,"./bert_for_sequence_classification.pt")
+
+    if args.predict:
+        if os.path.exists(args.model):
+            test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+            total_test_time += test_time
+            print("\n Prediction complete")
 
     assert validation_accuracy > 0.5
 
     print('\n======== Global stats ========')
-    if not args.pytorch_only:
+    if not args.pytorch_only and not args.predict:
         estimated_export = 0
         if args.epochs > 1:
             estimated_export = epoch_0_training - (total_training_time - epoch_0_training)/(args.epochs-1)
