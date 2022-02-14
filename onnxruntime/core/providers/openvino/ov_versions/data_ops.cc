@@ -17,8 +17,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-#include <ngraph/ngraph.hpp>
-#include <ngraph/frontend/onnx_import/onnx.hpp>
 #if defined(_MSC_VER)
 #pragma warning(default : 4244 4245)
 #elif __GNUC__
@@ -995,7 +993,7 @@ bool DataOps::type_is_supported(const NodeArg* node_arg, bool is_initializer) {
   } else {
     auto dtype = type_proto->tensor_type().elem_type();
 
-    if (device_id_ == "MYRIAD" || device_id_ == "HDDL" || device_id_.find("HETERO") != std::string::npos ||
+    if (device_id_ == "MYRIAD" || device_id_ == "HDDL" || device_id_ == "VPUX" || device_id_.find("HETERO") != std::string::npos ||
         device_id_.find("MULTI") != std::string::npos || device_id_.find("AUTO") != std::string::npos) {
       for (auto const& var : supported_types_vpu_) {
         if ((var.first <= version_id_) &&
@@ -1099,8 +1097,7 @@ bool DataOps::dimension_unsupported(const Node* node) {
   return true;
 }
 
-bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string>>& op_map,
-                                const NodeIndex node_idx) {
+bool DataOps::node_is_supported(const NodeIndex node_idx) {
   const auto& node = graph_viewer_.GetNode(node_idx);
   const auto& optype = node->OpType();
 
@@ -1118,7 +1115,6 @@ bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string
   2. Check if there is unsupported dimension in input and output shapes
   3. Check Op is supported
    3a. Check if Op is of known unsupported modes (edge cases). If yes return false right away.
-   3b. If above is not true, check if the op is available in nGraph.
   */
 
   //Check 0
@@ -1201,23 +1197,15 @@ bool DataOps::node_is_supported(const std::map<std::string, std::set<std::string
 #endif
     return false;
   }
-
-  //Check 3b
-  const auto opset = op_map.find(domain);
-  if (opset == op_map.end() || opset->second.find(optype) == opset->second.end()) {
-    return false;
-  } else {
-    return true;
-  }
+  return true;
 }
 
 std::vector<NodeIndex> DataOps::GetUnsupportedNodeIndices(std::unordered_set<std::string>& ng_required_initializers) {
-  const auto ng_supported_ops = GetNgSupportedOps(GetOnnxOpSet(graph_viewer_));
 
   std::vector<NodeIndex> unsupported_nodes_idx;
 
   for (const auto& node_idx : graph_viewer_.GetNodesInTopologicalOrder()) {
-    if (node_is_supported(ng_supported_ops, node_idx)) {
+    if (node_is_supported(node_idx)) {
       // Collect inputs that are initializers
       graph_viewer_.GetNode(node_idx)->ForEachDef([&ng_required_initializers, this](const NodeArg& node_arg, bool is_input) {
             if(is_input && this->graph_viewer_.GetAllInitializedTensors().count(node_arg.Name())) {

@@ -15,7 +15,6 @@ using Exception = InferenceEngine::Exception;
 using Exception = InferenceEngine::details::InferenceEngineException;
 #endif
 
-#include <ngraph/frontend/onnx_import/onnx.hpp>
 #include <ngraph/pass/convert_fp32_to_fp16.hpp>
 #include <ngraph/pass/constant_folding.hpp>
 
@@ -120,18 +119,6 @@ CreateCNNNetwork(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalCont
   }
 #endif
 
-#if (defined OPENVINO_2021_2) || (defined OPENVINO_2021_3)
-  ORT_UNUSED_PARAMETER(const_outputs_map);
-  std::istringstream model_stream{model_proto.SerializeAsString()};
-  try {
-    ng_function = ngraph::onnx_import::import_onnx_model(model_stream);
-    LOGS_DEFAULT(INFO) << "ONNX Import Done";
-  } catch (const std::exception& exp) {
-    ORT_THROW(log_tag + "[OpenVINO-EP] Exception while importing model to nGraph Func: " + std::string(exp.what()));
-  } catch (...) {
-    ORT_THROW(log_tag + "[OpenVINO-EP] Unknown exception while importing model to nGraph Func");
-  }
-#else
   //ReadNetwork() API flow will be used in OpenVINO-EP starting from OpenVINO 2021.4
   InferenceEngine::CNNNetwork cnn_network;
   const std::string model = model_proto.SerializeAsString();
@@ -145,7 +132,6 @@ CreateCNNNetwork(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalCont
     ORT_THROW(log_tag + "[OpenVINO-EP] Unknown exception while Reading network");
   }
   ng_function = cnn_network.getFunction();
-#endif
 
   if (global_context.device_type.find("GPU") != std::string::npos &&
       subgraph_context.precision == InferenceEngine::Precision::FP16) {
@@ -241,10 +227,9 @@ void SetIODefs(const ONNX_NAMESPACE::ModelProto& model_proto,
   for (auto iter = outputInfo.begin(); iter != outputInfo.end(); ++iter) {
     auto output_name = iter->first;
 
-    auto output_name2 = iter->second;
-    std::cout << "Inside SetIO: " << std::endl;
+    std::cout << "Inside SetIO Line230: " << std::endl;
     std::cout << "output_name: " << output_name << std::endl;
-    std::cout << "output_name2: " << output_name2 << std::endl;
+
 
     auto it = const_outputs_map.find(output_name);
     //Output is constant and don't need to set precision
@@ -284,20 +269,21 @@ GetOutputTensor(Ort::CustomOpApi& ort, OrtKernelContext* context, size_t batch_s
     output_shape[j] = static_cast<int64_t>(graph_output_dims[j]);
   }
 
+  //Adding Info for Debugging
   std::cout << "Inside GetOutputTensor Line 287: " << std::endl;
   std::cout << "output_name: " << output_name << std::endl;
 
   //printing unordered_map output_names
-  std::cout << "//printing unordered_map output_names: " << std::endl;
+  std::cout << "printing unordered_map output_names: " << std::endl;
+  auto itr = output_names.begin();
+
   while (itr != output_names.end()) {
       std::cout << "output_name in list" << itr->first << "\n";   
       itr++; 
   } 
+  std::cout << "end of output" << "\n";
 
   auto it = output_names.find(output_name);
-
-  //Adding Info for Debugging
-
   if (it == output_names.end()) {
     ORT_THROW(log_tag + "Output names mismatch between OpenVINO and ONNX");
   }

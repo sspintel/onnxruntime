@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <inference_engine.hpp>
+#include <vpux/vpux_plugin_config.hpp>
 
 #ifdef IO_BUFFER_ENABLED
 #include <gpu/gpu_context_api_ocl.hpp>
@@ -48,7 +49,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
   std::string ov_compiled_blobs_dir = "";
 
 #if defined (OPENVINO_2021_4) || (OPENVINO_2022_1)
-  if(hw_target == "MYRIAD")
+  if(hw_target == "MYRIAD" || hw_target == "VPUX")
     vpu_status = true;
   const std::string compiled_blob_path = onnxruntime::GetEnvironmentVar("OV_BLOB_PATH");
   if (vpu_status == true && openvino_ep::backend_utils::UseCompiledNetwork() && !compiled_blob_path.empty() &&
