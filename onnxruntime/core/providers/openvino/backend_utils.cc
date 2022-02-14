@@ -240,10 +240,22 @@ void SetIODefs(const ONNX_NAMESPACE::ModelProto& model_proto,
   auto outputInfo = network->getOutputsInfo();
   for (auto iter = outputInfo.begin(); iter != outputInfo.end(); ++iter) {
     auto output_name = iter->first;
+
+    auto output_name2 = iter->second;
+    std::cout << "Inside SetIO: " << std::endl;
+    std::cout << "output_name: " << output_name << std::endl;
+    std::cout << "output_name2: " << output_name2 << std::endl;
+
     auto it = const_outputs_map.find(output_name);
     //Output is constant and don't need to set precision
     if (it != const_outputs_map.end())
       break;
+
+    //printing unordered_map output_names
+    std::cout << "//printing unordered_map output_names: " << std::endl;
+    for (auto i : output_names)
+      std::cout << i.first << "    " << i.second << std::endl;
+    
     auto itr = output_names.find(output_name);
     if (itr == output_names.end()) {
       ORT_THROW(log_tag + "Output Names Mismatch: " + output_name + " doesn't exist");
@@ -271,7 +283,21 @@ GetOutputTensor(Ort::CustomOpApi& ort, OrtKernelContext* context, size_t batch_s
   for (size_t j = 0; j < num_dims; j++) {
     output_shape[j] = static_cast<int64_t>(graph_output_dims[j]);
   }
+
+  std::cout << "Inside GetOutputTensor Line 287: " << std::endl;
+  std::cout << "output_name: " << output_name << std::endl;
+
+  //printing unordered_map output_names
+  std::cout << "//printing unordered_map output_names: " << std::endl;
+  while (itr != output_names.end()) {
+      std::cout << "output_name in list" << itr->first << "\n";   
+      itr++; 
+  } 
+
   auto it = output_names.find(output_name);
+
+  //Adding Info for Debugging
+
   if (it == output_names.end()) {
     ORT_THROW(log_tag + "Output names mismatch between OpenVINO and ONNX");
   }
@@ -297,6 +323,21 @@ GetOutputTensor(Ort::CustomOpApi& ort, OrtKernelContext* context,
   #endif
 
   auto it = output_names.find(output_name);
+  
+  std::cout << "Inside GetOutputTensor Line 325: " << std::endl;
+  std::cout << "output_name" << output_name << "\n";
+
+  auto itr = output_names.begin();
+
+  //printing unordered_map output_names
+  std::cout << "//printing unordered_map output_names: " << std::endl;
+  while (itr != output_names.end()) {
+      std::cout << "output_name in list" << itr->first << "\n";   
+      itr++; 
+  } 
+
+  std::cout << "end of output" << "\n";
+
   if (it == output_names.end()) {
     ORT_THROW(log_tag + "Output names mismatch between OpenVINO and ONNX");
   }
