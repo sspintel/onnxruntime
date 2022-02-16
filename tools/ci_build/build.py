@@ -1905,7 +1905,7 @@ def run_csharp_tests(source_dir, build_dir, use_cuda, use_openvino, use_tensorrt
 
     # Skip pretrained models test. Only run unit tests as part of the build
     # add "--verbosity", "detailed" to this command if required
-    cmd_args = ["dotnet", "test", "test\\Microsoft.ML.OnnxRuntime.Tests\\Microsoft.ML.OnnxRuntime.Tests.csproj",
+    cmd_args = ["dotnet", "test", "test\\Microsoft.ML.OnnxRuntime.Tests.Devices\\Microsoft.ML.OnnxRuntime.Tests.Devices.csproj",
                 "--filter", "FullyQualifiedName!=Microsoft.ML.OnnxRuntime.Tests.InferenceTest.TestPreTrainedModels",
                 is_linux_build, define_constants, ort_build_dir]
     run_subprocess(cmd_args, cwd=csharp_source_dir)
