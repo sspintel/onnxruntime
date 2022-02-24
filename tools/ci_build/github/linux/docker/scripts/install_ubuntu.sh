@@ -39,7 +39,7 @@ PACKAGE_LIST="autotools-dev \
 	libcurl4 \
 	libssl1.1 \
 	libkrb5-3 \
-	libicu66 \
+	libicu-dev \
 	libtinfo-dev \
 	libtool \
 	openssh-server \
