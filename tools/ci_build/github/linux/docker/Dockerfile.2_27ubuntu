@@ -57,7 +57,10 @@ RUN apt install cython -y --no-install-recommends
 RUN apt install patchelf -y --no-install-recommends
 RUN pip3 install auditwheel -y --no-install-recommends
 RUN pip3 install auditwheel-symbols -y --no-install-recommends
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0b2fedb7bdb8622adceefb5fd1b2adc1df20fe79
 #RUN cd onnxruntime
 #RUN ls
 #RUN chmod +x build.sh
