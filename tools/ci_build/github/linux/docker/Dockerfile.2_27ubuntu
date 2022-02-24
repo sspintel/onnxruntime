@@ -44,7 +44,6 @@ ARG ONNXRUNTIME_BRANCH=harinidg_manylinux
 RUN apt update; apt install -y git protobuf-compiler libprotobuf-dev
 RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO} 
 
-RUN ls
 RUN chmod +x /onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ./onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ln -s cmake-* cmake-dir
@@ -55,8 +54,8 @@ RUN apt update
 RUN pip3 install onnx
 RUN apt install cython -y --no-install-recommends
 RUN apt install patchelf -y --no-install-recommends
-RUN pip3 install auditwheel -y --no-install-recommends
-RUN pip3 install auditwheel-symbols -y --no-install-recommends
+RUN pip3 install auditwheel 
+RUN pip3 install auditwheel-symbols 
 #RUN cd onnxruntime
 #RUN ls
 #RUN chmod +x build.sh

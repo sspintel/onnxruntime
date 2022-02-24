@@ -101,9 +101,6 @@ manylinux_tags = [
 ]
 is_manylinux = environ.get('AUDITWHEEL_PLAT', None) in manylinux_tags
 
-print("#################################################")
-print(is_manylinux)
-print(environ.get('AUDITWHEEL_PLAT'))
 
 class build_ext(_build_ext):
     def build_extension(self, ext):
