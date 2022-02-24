@@ -53,6 +53,10 @@ ENV PATH=${WORKDIR_PATH}/cmake-dir/bin:$PATH
 RUN apt update
 
 RUN pip3 install onnx
+RUN apt install cython -y --no-install-recommends
+RUN apt install patchelf -y --no-install-recommends
+RUN pip3 install auditwheel -y --no-install-recommends
+RUN pip3 install auditwheel-symbols -y --no-install-recommends
 #RUN cd onnxruntime
 #RUN ls
 #RUN chmod +x build.sh
