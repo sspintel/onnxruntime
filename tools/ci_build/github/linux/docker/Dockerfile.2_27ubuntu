@@ -1,0 +1,61 @@
+FROM ubuntu:18.04
+ARG POLICY=manylinux_2_27
+ARG PLATFORM=x86_64
+#ARG OPENVINO_VERSION=2022.1
+ARG PYTHON_VERSION=3.6
+#ARG PYTHON_VERSION=3.6
+#RUN add apt-repository universe
+USER root
+RUN apt update
+RUN apt install python3-pip -y --no-install-recommends
+RUN python3 -m pip install numpy wheel setuptools
+RUN pip3 install --upgrade pip setuptools wheel
+COPY openvino-2022.1.0.dev20211221-5855-cp36-cp36m-manylinux_2_27_x86_64.whl /tmp
+RUN pip3 install tmp/openvino-2022.1.0.dev20211221-5855-cp36-cp36m-manylinux_2_27_x86_64.whl
+RUN apt-get install libpython3.6 -y --no-install-recommends
+RUN python3 -c "from openvino.inference_engine import IECore"  
+ENV AUDITWHEEL_POLICY=${POLICY} AUDITWHEEL_ARCH=${PLATFORM} AUDITWHEEL_PLAT=${POLICY}_${PLATFORM}
+ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8
+ENV INTEL_OPENVINO_DIR /usr/local/lib/python3.6/dist-packages/openvino
+ENV InferenceEngine_LIBRARIES /usr/local/lib/python3.6/dist-packages/openvino/inference_engine
+ENV LD_LIBRARY_PATH $INTEL_OPENVINO_DIR/libs
+ENV NGRAPH_LIBRARIES /usr/local/lib/python3.6/dist-packages/ngraph
+
+ADD scripts /tmp/scripts
+RUN /tmp/scripts/install_ubuntu.sh -p $PYTHON_VERSION 
+RUN /tmp/scripts/install_os_deps.sh 
+RUN /tmp/scripts/install_python_deps.sh -p $PYTHON_VERSION 
+RUN rm -rf /tmp/scripts
+
+RUN apt update && apt install -y libnuma1 ocl-icd-libopencl1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/scripts
+
+# ENV WORKDIR_PATH=/home/openvino
+ENV DEBIAN_FRONTEND noninteractive
+
+ARG DEVICE=CPU_FP32 
+ARG ONNXRUNTIME_REPO=https://github.com/intel/onnxruntime.git
+ARG ONNXRUNTIME_BRANCH=harinidg_manylinux
+
+#ENV HTTP_PROXY=http://proxy-us.intel.com:911
+#ENV HTTPS_PROXY=http://proxy-us.intel.com:912
+
+
+RUN apt update; apt install -y git protobuf-compiler libprotobuf-dev
+RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO} 
+
+RUN ls
+RUN chmod +x /onnxruntime/dockerfiles/scripts/install_common_deps.sh
+RUN ./onnxruntime/dockerfiles/scripts/install_common_deps.sh
+RUN ln -s cmake-* cmake-dir
+
+ENV PATH=${WORKDIR_PATH}/cmake-dir/bin:$PATH
+RUN apt update
+
+RUN pip3 install onnx
+#RUN cd onnxruntime
+#RUN ls
+#RUN chmod +x build.sh
+#RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_wheel
+#RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build_shared_lib --build_wheel
+CMD ["sleep","10000"]

@@ -7,7 +7,7 @@
 # Rather than modifying the source files directly, updated versions will be
 # saved to another location in the build directory: ${op_reduction_root}.
 set(op_reduction_root "${CMAKE_BINARY_DIR}/op_reduction.generated")
-
+#list(APPEND CMAKE_PROGRAM_PATH  "/onnxruntime/onnxruntime/core/providers/openvino/include/ie/" ...)
 # This helper function replaces the relevant original source files with their
 # updated, reduced ops versions in `all_srcs`.
 function(substitute_op_reduction_srcs all_srcs)
@@ -707,8 +707,19 @@ if (onnxruntime_USE_VITISAI)
 endif()
 
 if (onnxruntime_USE_OPENVINO)
-
-#  include_directories("${CMAKE_CURRENT_BINARY_DIR}/onnx")
+  # set(ENV{NGRAPH_LIBRARIES} "/usr/local/lib/python3.6/dist-packages/ngraph")
+  # export INTEL_OPENVINO_DIR="/usr/local/lib/python3.6/dist-packages/openvino"
+  # export InferenceEngine_LIBRARIES="/usr/local/lib/python3.6/dist-packages/openvino/inference_engine"
+  # export LD_LIBRARY_PATH="/usr/local/lib/python3.6/dist-packages/openvino/libs"
+  # export NGRAPH_LIBRARIES="/usr/local/lib/python3.6/dist-packages/ngraph"
+  # ENV{INTEL_OPENVINO_DIR}
+  # ENV{C_INCLUDE_PATH}
+  # ENV{InferenceEngine_LIBRARIES}
+  # ENV{LD_LIBRARY_PATH}
+  # ENV{NGRAPH_LIBRARIES}
+  
+  # target_include_directories("onnxruntime/core/providers/openvino/include/ie" "onnxruntime/core/providers/openvino/include" "onnxruntime/core/providers/openvino/include/openvino/core")
+  # target_include_directories("onnxruntime/core/providers/openvino/include/ngraph")
   file(GLOB_RECURSE onnxruntime_providers_openvino_cc_srcs CONFIGURE_DEPENDS
     "${ONNXRUNTIME_ROOT}/core/providers/openvino/*.h"
     "${ONNXRUNTIME_ROOT}/core/providers/openvino/*.cc"
@@ -716,7 +727,31 @@ if (onnxruntime_USE_OPENVINO)
     "${ONNXRUNTIME_ROOT}/core/providers/openvino/*.cpp"
     "${ONNXRUNTIME_ROOT}/core/providers/shared_library/*.h"
     "${ONNXRUNTIME_ROOT}/core/providers/shared_library/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/openvino/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/*.hpp"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/details/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/details/*.hpp"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/cpp/*.hpp"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ie/cpp/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ngraph/*.hpp"
+    "${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ngraph/*.h"
   )
+  
+  # # Header paths
+  #list(APPEND OPENVINO_INCLUDE_DIR_LIST ${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ngraph)
+  #list(APPEND OPENVINO_INCLUDE_DIR_LIST ${ONNXRUNTIME_ROOT}/core/providers/openvino/include/ngraph)
+  #target_include_directories(onnxruntime_providers_openvino SYSTEM PUBLIC ${ONNXRUNTIME_ROOT} ${OPENVINO_INCLUDE_DIR_LIST})
+  #list(APPEND OPENVINO_INCLUDE_DIR_LIST $ENV{INTEL_OPENVINO_DIR}/inference_engine/external/tbb/include)
+  #list(APPEND OPENVINO_INCLUDE_DIR_LIST $ENV{INTEL_OPENVINO_DIR}/inference_engine/external/mkltiny_lnx/include)
+    
+  # # Library paths
+  # list(APPEND OPENVINO_LIB_DIR_LIST $ENV{INTEL_OPENVINO_DIR}/inference_engine/external/tbb/lib)
+  # list(APPEND OPENVINO_LIB_DIR_LIST $ENV{INTEL_OPENVINO_DIR}/inference_engine/external/tbb/bin)
+  # list(APPEND OPENVINO_LIB_DIR_LIST $ENV{INTEL_OPENVINO_DIR}/inference_engine/external/mkltiny_lnx/lib)
+  
 
   if (WIN32)
 	  set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
@@ -725,16 +760,16 @@ if (onnxruntime_USE_OPENVINO)
   # Header paths
   find_package(InferenceEngine REQUIRED)
   find_package(ngraph REQUIRED)
+  # PATH "/usr/local/lib/python3.6/dist-packages/ngraph"
 
-  if (WIN32)
-    unset(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO)
-  endif()
-
+  # if (WIN32)
+  #   unset(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO)
+  # endif()
   if ((DEFINED ENV{OPENCL_LIBS}) AND (DEFINED ENV{OPENCL_INCS}))
     add_definitions(-DIO_BUFFER_ENABLED=1)
     list(APPEND OPENVINO_LIB_LIST $ENV{OPENCL_LIBS} ${InferenceEngine_LIBRARIES} ${NGRAPH_LIBRARIES} ngraph::onnx_importer ${PYTHON_LIBRARIES})
   else()
-    list(APPEND OPENVINO_LIB_LIST ${InferenceEngine_LIBRARIES} ${NGRAPH_LIBRARIES} ngraph::onnx_importer ${PYTHON_LIBRARIES})
+    list(APPEND OPENVINO_LIB_LIST ${InferenceEngine_LIBRARIES} ${NGRAPH_LIBRARIES} ${PYTHON_LIBRARIES})
   endif()
 
   source_group(TREE ${ONNXRUNTIME_ROOT}/core FILES ${onnxruntime_providers_openvino_cc_srcs})
@@ -743,6 +778,10 @@ if (onnxruntime_USE_OPENVINO)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/../include/onnxruntime/core/providers/openvino  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/onnxruntime/core/providers)
   set_target_properties(onnxruntime_providers_openvino PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(onnxruntime_providers_openvino PROPERTIES FOLDER "ONNXRuntime")
+  #set_target_properties(onnxruntime_providers_shared PROPERTIES FOLDER "ONNXRuntime")
+  #set_target_properties(onnxruntime_providers_shared PROPERTIES LINKER_LANGUAGE CXX)
+
+  #target_link_directories(onnxruntime_providers_openvino PRIVATE ${OPENVINO_LIB_DIR_LIST})
   if(NOT MSVC)
     target_compile_options(onnxruntime_providers_openvino PRIVATE "-Wno-parentheses")
   endif()

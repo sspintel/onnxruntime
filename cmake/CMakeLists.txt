@@ -469,6 +469,7 @@ if (NOT MSVC AND NOT (CMAKE_SYSTEM_NAME STREQUAL "iOS"))
 endif()
 
 set(REPO_ROOT ${PROJECT_SOURCE_DIR}/..)
+
 set(ONNXRUNTIME_ROOT ${PROJECT_SOURCE_DIR}/../onnxruntime)
 set(ORTTRAINING_ROOT ${PROJECT_SOURCE_DIR}/../orttraining)
 set(ORTTRAINING_SOURCE_DIR ${ORTTRAINING_ROOT}/orttraining)
@@ -724,6 +725,9 @@ if (NOT WIN32 AND NOT onnxruntime_PREFER_SYSTEM_LIB)
 endif()
 # External dependencies
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/external)
+set(InferenceEngine_DIR ${CMAKE_MODULE_PATH})
+set(OpenVINO_DIR ${CMAKE_MODULE_PATH})
+set(ngraph_DIR ${CMAKE_MODULE_PATH})
 
 #protobuf begin
 
@@ -1529,8 +1533,8 @@ if (onnxruntime_USE_OPENVINO)
 
   add_definitions(-DUSE_OPENVINO=1)
 
-  if (EXISTS "$ENV{INTEL_OPENVINO_DIR}/deployment_tools/inference_engine/version.txt")
-    file(READ $ENV{INTEL_OPENVINO_DIR}/deployment_tools/inference_engine/version.txt VER)
+  if (EXISTS "$ENV{INTEL_OPENVINO_DIR}/inference_engine/version.txt")
+    file(READ $ENV{INTEL_OPENVINO_DIR}/inference_engine/version.txt VER)
   endif()
 
   if (NOT DEFINED ENV{INTEL_OPENVINO_DIR})
@@ -2046,4 +2050,3 @@ if (onnxruntime_ENABLE_EXTERNAL_CUSTOM_OP_SCHEMAS)
     COMMENT "Installing protobuf"
   )
 endif()
-
