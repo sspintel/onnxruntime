@@ -17,8 +17,7 @@ import datetime
 
 
 import onnxruntime
-#from onnxruntime.training.ortmodule import ORTModule, DebugOptions
-from onnxruntime.training.ortmodule import OVTorch, DebugOptions
+from onnxruntime.training.ortmodule import ORTModule, ProviderConfigs, DebugOptions
 
 def train(model, optimizer, scheduler, train_dataloader, epoch, device, args):
     # ========================================
@@ -384,15 +383,17 @@ def main():
         if os.path.exists(args.model):
             model = torch.load(args.model)
             print("Running prediction on validation dataset using fine-tuned model {}".format(args.model))
+            provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
         else:
             raise ValueError('Invalid model path: %s' % args.model)
 
     if not args.pytorch_only:
         # Just for future debugging
         debug_options = DebugOptions(save_onnx=False, onnx_prefix='BertForSequenceClassification')
-        #model = ORTModule(model, debug_options)
-        model = OVTorch(model, debug_options)
-
+        if not args.predict:
+            model = ORTModule(model, debug_options)
+        else:
+            model = ORTModule(model, provider_configs=provider_configs)
     # Tell pytorch to run this model on the GPU.
     if torch.cuda.is_available() and not args.no_cuda:
         model.cuda()
