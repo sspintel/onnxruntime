@@ -119,6 +119,7 @@ std::vector<SupportedOp> supported_op_mode = {
     {"Greater", V_2020_4, {"All"}},
     {"GreaterOrEqual", V_2022_1, {"All"}},
     {"Identity", V_2020_4, {"All"}},
+    // {"If", V_2022_1, {"CPU"}},
     {"ImageScaler", V_2022_1, {"All"}},
     {"InstanceNormalization", V_2020_4, {"All"}},
     {"HardSigmoid", V_2020_4, {"CPU", "GPU"}},
@@ -164,7 +165,7 @@ std::vector<SupportedOp> supported_op_mode = {
     {"ReduceMean", V_2020_4, {"All"}},
     {"ReduceMin", V_2020_4, {"All"}},
     {"ReduceProd", V_2020_4, {"CPU"}},
-    {"ReduceProd", V_2022_1, {"GPU"}},
+    {"ReduceProd", V_2022_1, {"CPU", "GPU"}},
     {"ReduceSum", V_2020_4, {"All"}},
     {"ReduceSumSquare", V_2020_4, {"CPU", "MYRIAD"}},
     {"ReduceSumSquare", V_2022_1, {"All"}},
@@ -271,6 +272,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"Less", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Greater", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Clip", V_2021_2, {"MYRIAD"}});
+  no_dimension_supported_.push_back({"Clip", V_2022_1, {"CPU"}});
   no_dimension_supported_.push_back({"Resize", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Equal", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Reshape", V_2021_3, {"MYRIAD"}});
@@ -282,6 +284,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"ReduceMin", V_2021_3, {"MYRIAD"}});
   no_dimension_supported_.push_back({"ReduceMin", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"ReduceMax", V_2021_4, {"All"}});
+  no_dimension_supported_.push_back({"ReduceProd", V_2022_1, {"CPU"}});
   no_dimension_supported_.push_back({"QuantizeLinear", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"DequantizeLinear", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"Shape", V_2022_1, {"GPU"}});
