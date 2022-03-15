@@ -161,6 +161,7 @@ extern std::string nuphar_settings;
 #include "core/providers/dml/dml_provider_factory.h"
 #endif
 
+
 #if defined(USE_CUDA) || defined(USE_ROCM)
 #ifdef USE_CUDA
 namespace onnxruntime {

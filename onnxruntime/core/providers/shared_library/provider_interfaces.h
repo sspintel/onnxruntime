@@ -150,6 +150,9 @@ struct ProviderHost {
   virtual bool CudaCall_true(int retCode, const char* exprString, const char* libName, int successCode, const char* msg) = 0;
 #endif
 
+#ifdef USE_OPENVINO
+  virtual std::unique_ptr<IDataTransfer> CreateOVGPUDataTransfer() = 0;
+#endif
   virtual std::unordered_set<NodeIndex> GetCpuPreferredNodes(const onnxruntime::GraphViewer& graph,
                                                              const std::string& provider_type,
                                                              const std::vector<const KernelRegistry*>& kernel_registries,

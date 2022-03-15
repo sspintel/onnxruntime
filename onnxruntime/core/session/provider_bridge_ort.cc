@@ -84,6 +84,7 @@ namespace onnxruntime {
 ProviderInfo_CUDA* TryGetProviderInfo_CUDA();
 ProviderInfo_CUDA& GetProviderInfo_CUDA();
 ProviderHostCPU& GetProviderHostCPU();
+ProviderInfo_OpenVINO* GetProviderInfo_OpenVINO();
 
 struct TensorShapeProto_Dimension_Iterator_Impl : TensorShapeProto_Dimension_Iterator {
   TensorShapeProto_Dimension_Iterator_Impl(google::protobuf::internal::RepeatedPtrIterator<const onnx::TensorShapeProto_Dimension>&& v) : v_{std::move(v)} {}
@@ -174,6 +175,10 @@ struct ProviderHostImpl : ProviderHost {
   bool CudaCall_false(int retCode, const char* exprString, const char* libName, int successCode, const char* msg) override { return GetProviderInfo_CUDA().CudaCall_false(retCode, exprString, libName, successCode, msg); }
   bool CudaCall_true(int retCode, const char* exprString, const char* libName, int successCode, const char* msg) override { return GetProviderInfo_CUDA().CudaCall_true(retCode, exprString, libName, successCode, msg); }
 #endif
+
+#ifdef USE_OPENVINO 
+   std::unique_ptr<IDataTransfer> CreateOVGPUDataTransfer() override { return  GetProviderInfo_OpenVINO()->CreateOVGPUDataTransfer(); }
+#endif 
 
   std::string GetEnvironmentVar(const std::string& var_name) override { return Env::Default().GetEnvironmentVar(var_name); }
 

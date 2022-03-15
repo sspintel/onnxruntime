@@ -24,7 +24,7 @@ struct GlobalContext {
   std::string onnx_model_name;
   std::string onnx_model_path_name;
   int onnx_opset_version;
-  //void *remote_context = 0;
+  bool remote_context;
 };
 
 // Holds context specific to subgraph.
@@ -33,6 +33,7 @@ struct SubGraphContext {
   bool enable_batching = false;
   bool set_vpu_config = false;
   bool is_constant = false;
+  bool remote_context = false;
   std::string subgraph_name;
   std::vector<int> input_indexes;
   std::unordered_map<std::string, int> input_names;

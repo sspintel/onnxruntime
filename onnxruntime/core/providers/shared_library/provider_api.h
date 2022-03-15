@@ -265,6 +265,7 @@ std::unique_ptr<IAllocator> CreateCUDAAllocator(int16_t device_id, const char* n
 std::unique_ptr<IAllocator> CreateCUDAPinnedAllocator(int16_t device_id, const char* name);
 
 std::unique_ptr<IDataTransfer> CreateGPUDataTransfer(void* stream);
+std::unique_ptr<IDataTransfer> CreateOVGPUDataTransfer();
 
 std::unordered_set<NodeIndex> GetCpuPreferredNodes(const onnxruntime::GraphViewer& graph,
                                                    const std::string& provider_type,

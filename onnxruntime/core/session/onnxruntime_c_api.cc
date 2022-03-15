@@ -45,6 +45,13 @@ ProviderInfo_CUDA* TryGetProviderInfo_CUDA();
 }
 #endif
 
+#ifdef USE_OPENVINO
+#include "core/providers/openvino/openvino_provider_factory.h"
+namespace onnxruntime {
+ProviderInfo_OpenVINO* GetProviderInfo_OpenVINO();
+}
+#endif
+
 #ifdef ENABLE_EXTENSION_CUSTOM_OPS
 #include "onnxruntime_extensions.h"
 #endif
@@ -262,6 +269,13 @@ std::unique_ptr<IDataTransfer> GetDataTransfer(const OrtDevice& src_device, cons
   if (src_device.Type() == OrtDevice::GPU || dst_device.Type() == OrtDevice::GPU) {
     if (auto* provider_info = TryGetProviderInfo_CUDA()) {
       return provider_info->CreateGPUDataTransfer(nullptr);
+    }
+  }
+#endif
+#ifdef USE_OPENVINO
+  if (src_device.Type() == OrtDevice::GPU || dst_device.Type() == OrtDevice::GPU) {
+    if (auto* provider_info = GetProviderInfo_OpenVINO()) {
+      return provider_info->CreateOVGPUDataTransfer();
     }
   }
 #endif

@@ -58,9 +58,10 @@ struct OpenVINOExecutionProviderInfo {
   size_t num_of_threads_;
   bool use_compiled_network_;
   std::string blob_dump_path_;
+  bool remote_context_;
 
-  explicit OpenVINOExecutionProviderInfo(std::string dev_type, bool enable_vpu_fast_compile, std::string dev_id, size_t num_of_threads, bool use_compiled_network, std::string blob_dump_path)
-      : enable_vpu_fast_compile_(enable_vpu_fast_compile), device_id_(dev_id), num_of_threads_(num_of_threads), use_compiled_network_(use_compiled_network), blob_dump_path_(blob_dump_path) {
+  explicit OpenVINOExecutionProviderInfo(std::string dev_type, bool enable_vpu_fast_compile, std::string dev_id, size_t num_of_threads, bool use_compiled_network, std::string blob_dump_path, bool remote_context)
+      : enable_vpu_fast_compile_(enable_vpu_fast_compile), device_id_(dev_id), num_of_threads_(num_of_threads), use_compiled_network_(use_compiled_network), blob_dump_path_(blob_dump_path), remote_context_(remote_context) {
     if (dev_type == "") {
       LOGS_DEFAULT(INFO) << "[OpenVINO-EP]"
                          << "No runtime device selection option provided.";
@@ -128,7 +129,7 @@ struct OpenVINOExecutionProviderInfo {
                        << "Choosing Device: " << device_type_ << " , Precision: " << precision_;
   }
   OpenVINOExecutionProviderInfo() {
-    OpenVINOExecutionProviderInfo("", false, "", 0, false,"");
+    OpenVINOExecutionProviderInfo("", false, "", 0, false,"", false);
   }
 };
 
@@ -155,6 +156,8 @@ class OpenVINOExecutionProvider : public IExecutionProvider {
   const void* GetExecutionHandle() const noexcept override {
     return nullptr;
   }
-};
 
+  std::unique_ptr<onnxruntime::IDataTransfer> GetDataTransfer() const override; 
+
+};
 }  // namespace onnxruntime

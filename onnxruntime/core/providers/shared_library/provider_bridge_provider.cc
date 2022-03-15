@@ -318,6 +318,12 @@ std::unique_ptr<IDataTransfer> CreateGPUDataTransfer(void* stream) {
 }
 #endif
 
+#ifdef USE_OPENVINO
+std::unique_ptr<IDataTransfer> CreateOVGPUDataTransfer() {
+  return g_host->CreateOVGPUDataTransfer();
+}
+#endif
+
 std::string GetEnvironmentVar(const std::string& var_name) {
   return g_host->GetEnvironmentVar(var_name);
 }
