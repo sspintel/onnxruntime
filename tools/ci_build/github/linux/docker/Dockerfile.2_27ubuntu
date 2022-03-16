@@ -30,10 +30,10 @@ RUN rm -rf /tmp/scripts
 RUN apt update && apt install -y libnuma1 ocl-icd-libopencl1 && \
     rm -rf /var/lib/apt/lists/* /tmp/scripts
 
-RUN apt update
-RUN wget --no-proxy http://nncv-nas-01.ccr.corp.intel.com/ovino-pkg/packages/nightly/2022WW11.5/releases/2022/1/625/irc/linux/l_openvino_toolkit_p_2022.1.0.625_offline.sh
-RUN chmod +x l_openvino_toolkit_p_2022.1.0.625_offline.sh
-RUN ./l_openvino_toolkit_p_2022.1.0.625_offline.sh -a -s --eula accept
+#RUN apt update
+# RUN wget --no-proxy http://nncv-nas-01.ccr.corp.intel.com/ovino-pkg/packages/nightly/2022WW11.5/releases/2022/1/625/irc/linux/l_openvino_toolkit_p_2022.1.0.625_offline.sh
+# RUN chmod +x l_openvino_toolkit_p_2022.1.0.625_offline.sh
+# RUN ./l_openvino_toolkit_p_2022.1.0.625_offline.sh -a -s --eula accept
 #RUN /bin/bash -c "source /opt/intel/openvino_2022.1.625/setupvars.sh"
 
 # ENV WORKDIR_PATH=/home/openvino
@@ -41,7 +41,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ARG DEVICE=CPU_FP32 
 ARG ONNXRUNTIME_REPO=https://github.com/intel/onnxruntime.git
-ARG ONNXRUNTIME_BRANCH=enable_2022.1_branch
+ARG ONNXRUNTIME_BRANCH=manylinux_openvino2022.1
 
 
 #ENV HTTP_PROXY=http://proxy-us.intel.com:911
@@ -83,9 +83,9 @@ RUN apt install cython -y --no-install-recommends
 RUN apt install patchelf -y --no-install-recommends
 RUN pip3 install auditwheel 
 RUN pip3 install auditwheel-symbols 
-#RUN cd onnxruntime
-#RUN ls
-#RUN chmod +x build.sh
+WORKDIR /onnxruntime
+RUN ls
+RUN chmod +x build.sh
 #RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_wheel
-#RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_shared_lib --build_wheel
+RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_shared_lib --build_wheel
 CMD ["sleep","10000"]
