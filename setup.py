@@ -85,17 +85,18 @@ elif parse_arg_remove_boolean(sys.argv, '--use_armnn'):
 # manylinux2014_ppc64le
 # manylinux2014_s390x
 manylinux_tags = [
-    'manylinux1_x86_64',
-    'manylinux1_i686',
-    'manylinux2010_x86_64',
-    'manylinux2010_i686',
-    'manylinux2014_x86_64',
-    'manylinux2014_i686',
-    'manylinux2014_aarch64',
-    'manylinux2014_armv7l',
-    'manylinux2014_ppc64',
-    'manylinux2014_ppc64le',
-    'manylinux2014_s390x',
+    # 'manylinux1_x86_64',
+    # 'manylinux1_i686',
+    # 'manylinux2010_x86_64',
+    # 'manylinux2010_i686',
+    # 'manylinux2014_x86_64',
+    # 'manylinux2014_i686',
+    # 'manylinux2014_aarch64',
+    # 'manylinux2014_armv7l',
+    # 'manylinux2014_ppc64',
+    # 'manylinux2014_ppc64le',
+    # 'manylinux2014_s390x',
+    'manylinux_2_27_x86_64'
 ]
 is_manylinux = environ.get('AUDITWHEEL_PLAT', None) in manylinux_tags
 
@@ -269,6 +270,7 @@ else:
 if is_manylinux:
     data = ['capi/libonnxruntime_pywrapper.so'] if nightly_build else []
     data += [path.join('capi', x) for x in dl_libs if path.isfile(path.join('onnxruntime', 'capi', x))]
+    data += [path.join('capi', x) for x in libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = [
         Extension(
             'onnxruntime.capi.onnxruntime_pybind11_state',
