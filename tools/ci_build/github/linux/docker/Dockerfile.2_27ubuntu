@@ -55,23 +55,23 @@ RUN chmod +x /onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ./onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ln -s cmake-* cmake-dir
 
-COPY ./cmake/CMakeLists.txt /onnxruntime/cmake
-COPY ./cmake/onnxruntime_providers.cmake /onnxruntime/cmake
-COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake
-COPY ./cmake/InferenceEngineConfig-version.cmake /onnxruntime/cmake
-COPY ./cmake/OpenVINOConfig.cmake /onnxruntime/cmake
-COPY ./cmake/OpenVINOTargets.cmake /onnxruntime/cmake
-COPY ./cmake/OpenVINOConfig-version.cmake /onnxruntime/cmake
-COPY ./cmake/OpenVINOTargets-release.cmake /onnxruntime/cmake
-COPY ./cmake/ngraphConfig.cmake /onnxruntime/cmake
-COPY ./cmake/ngraphConfigVersion.cmake /onnxruntime/cmake
-COPY ./cmake/ie_parallel.cmake /onnxruntime/cmake
-COPY ./setup.py /onnxruntime/
+# COPY ./cmake/CMakeLists.txt /onnxruntime/cmake
+# COPY ./cmake/onnxruntime_providers.cmake /onnxruntime/cmake
+# COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake
+# COPY ./cmake/InferenceEngineConfig-version.cmake /onnxruntime/cmake
+# COPY ./cmake/OpenVINOConfig.cmake /onnxruntime/cmake
+# COPY ./cmake/OpenVINOTargets.cmake /onnxruntime/cmake
+# COPY ./cmake/OpenVINOConfig-version.cmake /onnxruntime/cmake
+# COPY ./cmake/OpenVINOTargets-release.cmake /onnxruntime/cmake
+# COPY ./cmake/ngraphConfig.cmake /onnxruntime/cmake
+# COPY ./cmake/ngraphConfigVersion.cmake /onnxruntime/cmake
+# COPY ./cmake/ie_parallel.cmake /onnxruntime/cmake
+# COPY ./setup.py /onnxruntime/
 
-COPY cmake/include /onnxruntime/cmake/include
-COPY cmake/3rdparty /onnxruntime/cmake/3rdparty
-COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake/external
-COPY ./cmake/ngraphConfig.cmake /onnxruntime/cmake/external
+# COPY cmake/include /onnxruntime/cmake/include
+# COPY cmake/3rdparty /onnxruntime/cmake/3rdparty
+# COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake/external
+# COPY ./cmake/ngraphConfig.cmake /onnxruntime/cmake/external
 
 COPY runtime /onnxruntime/runtime
 
