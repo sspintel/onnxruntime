@@ -36,6 +36,7 @@ public:
     virtual const DiscreteTypeInfo& get_type_info() const = 0;
     virtual ~ValueAccessor() = default;
     virtual void set_as_any(const ov::Any& x) {
+        (void)x;
         throw ov::Exception("set_as_any is not implemented");
     }
 };
