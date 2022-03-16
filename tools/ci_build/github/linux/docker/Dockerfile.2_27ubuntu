@@ -54,7 +54,7 @@ RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO}
 RUN chmod +x /onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ./onnxruntime/dockerfiles/scripts/install_common_deps.sh
 RUN ln -s cmake-* cmake-dir
-
+COPY ./runtime/include/openvino/core/attribute_adapter.hpp /onnxruntime/runtime/include/openvino/core/attribute_adapter.hpp
 # COPY ./cmake/CMakeLists.txt /onnxruntime/cmake
 # COPY ./cmake/onnxruntime_providers.cmake /onnxruntime/cmake
 # COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake
