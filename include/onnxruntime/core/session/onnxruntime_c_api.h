@@ -482,6 +482,9 @@ typedef struct OrtTensorRTProviderOptions {
   int trt_engine_decryption_enable;             // enable engine decryption. Default 0 = false, nonzero = true
   const char* trt_engine_decryption_lib_path;   // specify engine decryption library path
   int trt_force_sequential_engine_build;        // force building TensorRT engine sequentially. Default 0 = false, nonzero = true
+  // This is the legacy struct and don't add new fields here.
+  // For new field that can be represented by string, please add it in include/onnxruntime/core/providers/tensorrt/tensorrt_provider_options.h   
+  // For non-string field, need to create a new separate api to handle it.
 } OrtTensorRTProviderOptions;
 
 /** \brief MIGraphX Provider Options
@@ -500,7 +503,7 @@ typedef struct OrtMIGraphXProviderOptions {
 */
 typedef struct OrtOpenVINOProviderOptions {
 #ifdef __cplusplus
-  OrtOpenVINOProviderOptions() : device_type{}, enable_vpu_fast_compile{}, device_id{}, num_of_threads{}, use_compiled_network{}, blob_dump_path{}, context{} {}
+  OrtOpenVINOProviderOptions() : device_type{}, enable_vpu_fast_compile{}, device_id{}, num_of_threads{}, use_compiled_network{}, blob_dump_path{}, context{}, enable_opencl_throttling{} {}
 #endif
   /** \brief Device type string
   *
@@ -513,6 +516,7 @@ typedef struct OrtOpenVINOProviderOptions {
   unsigned char use_compiled_network;  ///< 0 = disabled, nonzero = enabled
   const char* blob_dump_path;          // path is set to empty by default
   void* context;
+  unsigned char enable_opencl_throttling; ///< 0 = disabled, nonzero = enabled
 } OrtOpenVINOProviderOptions;
 
 struct OrtApi;

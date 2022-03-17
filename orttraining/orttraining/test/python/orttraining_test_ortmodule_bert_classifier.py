@@ -152,6 +152,7 @@ def test(model, validation_dataloader, device, args):
         # Telling the model not to compute or store gradients, saving memory and
         # speeding up validation
         with torch.no_grad():
+
             # Forward pass, calculate logit predictions.
             # This will return the logits rather than the loss because we have
             # not provided labels.
@@ -322,6 +323,8 @@ def main():
                         help='input batch size for testing (default: 64)')
     parser.add_argument('--view-graphs', action='store_true', default=False,
                         help='views forward and backward graphs')
+    parser.add_argument('--export-onnx-graphs', action='store_true', default=False,
+                        help='export ONNX graphs to current directory')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--epochs', type=int, default=4, metavar='N',
@@ -389,7 +392,7 @@ def main():
 
     if not args.pytorch_only:
         # Just for future debugging
-        debug_options = DebugOptions(save_onnx=False, onnx_prefix='BertForSequenceClassification')
+        debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='BertForSequenceClassification')
         if not args.predict:
             model = ORTModule(model, debug_options)
         else:

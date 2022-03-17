@@ -27,6 +27,7 @@
 #include "core/session/abi_session_options_impl.h"
 #include "core/session/onnxruntime_session_options_config_keys.h"
 #include "core/session/provider_bridge_ort.h"
+#include "core/providers/tensorrt/tensorrt_provider_options.h"
 
 // Explicitly provide a definition for the static const var 'GPU' in the OrtDevice struct,
 // GCC 4.x doesn't seem to define this and it breaks the pipelines based on CentOS as it uses
@@ -374,7 +375,7 @@ std::unique_ptr<IExecutionProvider> CreateExecutionProviderInstance(
       std::string calibration_table, cache_path, lib_path;
       auto it = provider_options_map.find(type);
       if (it != provider_options_map.end()) {
-        OrtTensorRTProviderOptions params{
+        OrtTensorRTProviderOptionsV2 params{
             0,
             0,
             nullptr,
@@ -603,6 +604,14 @@ std::unique_ptr<IExecutionProvider> CreateExecutionProviderInstance(
             ORT_THROW("Invalid value passed for use_compiled_network: ", option.second);
           }
 
+        } else if (option.first == "enable_opencl_throttling") {
+          if (option.second == "True") {
+            params.use_compiled_network = true;
+          } else if (option.second == "False") {
+            params.use_compiled_network = false;
+          } else {
+            ORT_THROW("Invalid value passed for enable_opencl_throttling: ", option.second);
+          }
         } else if (option.first == "device_id") {
           params.device_id = option.second.c_str();
         } else if (option.first == "num_of_threads") {
@@ -646,15 +655,15 @@ std::unique_ptr<IExecutionProvider> CreateExecutionProviderInstance(
     nuphar_settings.clear();
     return p;
 #endif
-  } else if (type == kStvmExecutionProvider) {
-#if USE_STVM
-    onnxruntime::StvmExecutionProviderInfo info{};
+  } else if (type == kTvmExecutionProvider) {
+#if USE_TVM
+    onnxruntime::TvmExecutionProviderInfo info{};
     const auto it = provider_options_map.find(type);
     if (it != provider_options_map.end()) {
-      info = onnxruntime::StvmExecutionProviderInfo::FromProviderOptions(it->second);
+      info = onnxruntime::TvmExecutionProviderInfo::FromProviderOptions(it->second);
     }
 
-    return onnxruntime::CreateExecutionProviderFactory_Stvm(info)->CreateProvider();
+    return onnxruntime::CreateExecutionProviderFactory_Tvm(info)->CreateProvider();
 #endif
   } else if (type == kVitisAIExecutionProvider) {
 #if USE_VITISAI
@@ -830,7 +839,7 @@ void InitializeSession(InferenceSession* sess,
 
 #if !defined(ORT_MINIMAL_BUILD)
   if (!disabled_optimizer_names.empty()) {
-    OrtPybindThrowIfError(sess->FilterEnabledOptimizers(disabled_optimizer_names));
+    OrtPybindThrowIfError(sess->FilterEnabledOptimizers({disabled_optimizer_names.cbegin(), disabled_optimizer_names.cend()}));
   }
 #else
   ORT_UNUSED_PARAMETER(disabled_optimizer_names);
@@ -886,6 +895,13 @@ void addGlobalMethods(py::module& m, Environment& env) {
         default_logging_manager->SetDefaultLoggerSeverity(static_cast<logging::Severity>(severity));
       },
       "Sets the default logging severity. 0:Verbose, 1:Info, 2:Warning, 3:Error, 4:Fatal");
+  m.def(
+      "set_default_logger_verbosity", [&env](int vlog_level) {
+        logging::LoggingManager* default_logging_manager = env.GetLoggingManager();
+        default_logging_manager->SetDefaultLoggerVerbosity(vlog_level);
+      },
+      "Sets the default logging verbosity level. To activate the verbose log, "
+      "you need to set the default logging severity to 0:Verbose level.");
   m.def(
       "get_all_providers", []() -> const std::vector<std::string>& { return GetAllExecutionProviderNames(); },
       "Return list of Execution Providers that this version of Onnxruntime can support. "
