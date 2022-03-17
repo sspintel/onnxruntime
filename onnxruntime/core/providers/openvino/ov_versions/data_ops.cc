@@ -56,7 +56,7 @@ std::set<std::string> ops_supported_only_in_model = {
     "TopK",
     "QuantizeLinear"};
 
-//Ops which are supported as functions (as composite ops) and not in unit tests
+//Ops which are supported as functions (as composite ops)
 std::set<std::string> ops_supported_as_function = {
     "LessOrEqual",
 };
@@ -559,18 +559,6 @@ void DataOps::populate_op_mode_supported() {
                                return false;
                              }};
     op_list_.insert({"ConvInteger", obj});
-  }
-  {
-    UnsupportedOpMode obj = {{V_2022_1},
-                             [this](const Node* node, const InitializedTensorSet&) {
-                               //Input and output datatype as float is not supported
-                               const bool input_is_float = node->InputDefs()[0]->Type()->find("float") != std::string::npos;
-                               const bool output_is_float = node->OutputDefs()[0]->Type()->find("float") != std::string::npos;
-                               if(input_is_float && output_is_float)
-                                return true;
-                               return false;
-                             }};
-    op_list_.insert({"Expand", obj});
   }
   {
     UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3},
