@@ -350,7 +350,7 @@ def main():
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
-    if torch.cuda.is_available() and not args.no_cuda:
+    if torch.cuda.is_available() and not args.no_cuda and not args.predict:
         device = torch.device("cuda")
         print('There are %d GPU(s) available.' % torch.cuda.device_count())
         print('We will use the GPU:', torch.cuda.get_device_name(0))
@@ -364,13 +364,13 @@ def main():
         raise ValueError('Invalid log level: %s' % args.log_level)
     logging.basicConfig(level=numeric_level)
 
-    # 2. Dataloader
-    train_dataloader, validation_dataloader = load_dataset(args)
-
-    # 3. Modeling
-    # Load BertForSequenceClassification, the pretrained BERT model with a single
-    # linear classification layer on top.
     if not args.predict:
+        # 2. Dataloader
+        train_dataloader, validation_dataloader = load_dataset(args)
+
+        # 3. Modeling
+        # Load BertForSequenceClassification, the pretrained BERT model with a single
+        # linear classification layer on top.
         config = AutoConfig.from_pretrained(
                 "bert-base-uncased",
                 num_labels=2,
@@ -382,79 +382,85 @@ def main():
             "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
             config=config,
         )
+
+        if not args.pytorch_only:
+            # Just for future debugging
+            debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='BertForSequenceClassification')
+            model = ORTModule(model, debug_options)
+
+        # Tell pytorch to run this model on the GPU.
+        if torch.cuda.is_available() and not args.no_cuda:
+            model.cuda()
+
+        # Note: AdamW is a class from the huggingface library (as opposed to pytorch)
+        optimizer = AdamW(model.parameters(),
+                        lr = 2e-5, # args.learning_rate - default is 5e-5, our notebook had 2e-5
+                        eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
+                        )
+
+        # Authors recommend between 2 and 4 epochs
+        # Total number of training steps is number of batches * number of epochs.
+        total_steps = len(train_dataloader) * args.epochs
+
+        # Create the learning rate scheduler.
+        scheduler = get_linear_schedule_with_warmup(optimizer,
+                                                    num_warmup_steps = 0, # Default value in run_glue.py
+                                                    num_training_steps = total_steps)
+        # Seed
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        onnxruntime.set_seed(args.seed)
+        if torch.cuda.is_available() and not args.no_cuda:
+            torch.cuda.manual_seed_all(args.seed)
+
+        # 4. Train loop (fine-tune)
+        total_training_time, total_test_time, epoch_0_training, validation_accuracy = 0, 0, 0, 0
+        if not args.predict:
+            for epoch_i in range(0, args.epochs):
+                total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
+                if not args.pytorch_only and epoch_i == 0:
+                    epoch_0_training = total_training_time
+                test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+                total_test_time += test_time
+
+        if args.save_model:
+            torch.save(model,"./bert_for_sequence_classification.pt")
+
+        assert validation_accuracy > 0.5
+
+        print('\n======== Global stats ========')
+        if not args.pytorch_only and not args.predict:
+            estimated_export = 0
+            if args.epochs > 1:
+                estimated_export = epoch_0_training - (total_training_time - epoch_0_training)/(args.epochs-1)
+                print("  Estimated ONNX export took:               {:.4f}s".format(estimated_export))
+            else:
+                print("  Estimated ONNX export took:               Estimate available when epochs > 1 only")
+            print("  Accumulated training without export took: {:.4f}s".format(total_training_time - estimated_export))
+        print("  Accumulated training took:                {:.4f}s".format(total_training_time))
+        print("  Accumulated validation took:              {:.4f}s".format(total_test_time))
+
     else:
-        if os.path.exists(args.model):
-            model = torch.load(args.model)
-            print("Running prediction on validation dataset using fine-tuned model {}".format(args.model))
-            provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
-        else:
+        # 2. Dataloader
+        # TODO: Change to load custom input dataset
+        train_dataloader, validation_dataloader = load_dataset(args)
+
+        #Check if model path exists
+        if not os.path.exists(args.model):
             raise ValueError('Invalid model path: %s' % args.model)
 
-    if not args.pytorch_only:
-        # Just for future debugging
-        debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='BertForSequenceClassification')
-        if not args.predict:
-            model = ORTModule(model, debug_options)
-        else:
+        # 3. Load Model
+        model = torch.load(args.model)
+        print("Running prediction on validation dataset using fine-tuned model {}".format(args.model))
+        if not args.pytorch_only:
+            provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
             model = ORTModule(model, provider_configs=provider_configs)
-    # Tell pytorch to run this model on the GPU.
-    if torch.cuda.is_available() and not args.no_cuda:
-        model.cuda()
 
-    # Note: AdamW is a class from the huggingface library (as opposed to pytorch)
-    optimizer = AdamW(model.parameters(),
-                    lr = 2e-5, # args.learning_rate - default is 5e-5, our notebook had 2e-5
-                    eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
-                    )
-
-    # Authors recommend between 2 and 4 epochs
-    # Total number of training steps is number of batches * number of epochs.
-    total_steps = len(train_dataloader) * args.epochs
-
-    # Create the learning rate scheduler.
-    scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps = 0, # Default value in run_glue.py
-                                                num_training_steps = total_steps)
-    # Seed
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    onnxruntime.set_seed(args.seed)
-    if torch.cuda.is_available() and not args.no_cuda:
-        torch.cuda.manual_seed_all(args.seed)
-
-    # 4. Train loop (fine-tune)
-    total_training_time, total_test_time, epoch_0_training, validation_accuracy = 0, 0, 0, 0
-    if not args.predict:
-        for epoch_i in range(0, args.epochs):
-            total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
-            if not args.pytorch_only and epoch_i == 0:
-                epoch_0_training = total_training_time
-            test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-            total_test_time += test_time
-
-    if args.save_model:
-        torch.save(model,"./bert_for_sequence_classification.pt")
-
-    if args.predict:
-        if os.path.exists(args.model):
-            test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-            total_test_time += test_time
-            print("\n Prediction complete")
-
-    assert validation_accuracy > 0.5
-
-    print('\n======== Global stats ========')
-    if not args.pytorch_only and not args.predict:
-        estimated_export = 0
-        if args.epochs > 1:
-            estimated_export = epoch_0_training - (total_training_time - epoch_0_training)/(args.epochs-1)
-            print("  Estimated ONNX export took:               {:.4f}s".format(estimated_export))
-        else:
-            print("  Estimated ONNX export took:               Estimate available when epochs > 1 only")
-        print("  Accumulated training without export took: {:.4f}s".format(total_training_time - estimated_export))
-    print("  Accumulated training took:                {:.4f}s".format(total_training_time))
-    print("  Accumulated validation took:              {:.4f}s".format(total_test_time))
+        # 4. Predict
+        # TODO: Change to run prediction on custom dataset
+        test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+        print("\n Prediction complete")
 
 if __name__ == '__main__':
     main()
