@@ -298,6 +298,10 @@ def load_dataset(args):
 
     return train_dataloader, validation_dataloader
 
+def load_pred_dataset():
+def predict():
+def preprocess_input():
+
 # Function to calculate the accuracy of our predictions vs labels
 def flat_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()
@@ -444,7 +448,8 @@ def main():
     else:
         # 2. Dataloader
         # TODO: Change to load custom input dataset
-        train_dataloader, validation_dataloader = load_dataset(args)
+        #train_dataloader, validation_dataloader = load_dataset(args)
+        load_pred_dataset()
 
         #Check if model path exists
         if not os.path.exists(args.model):
@@ -459,7 +464,8 @@ def main():
 
         # 4. Predict
         # TODO: Change to run prediction on custom dataset
-        test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+        #test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+        predict()
         print("\n Prediction complete")
 
 if __name__ == '__main__':
