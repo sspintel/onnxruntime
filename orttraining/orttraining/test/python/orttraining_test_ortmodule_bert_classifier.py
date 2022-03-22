@@ -192,6 +192,44 @@ def test(model, validation_dataloader, device, args):
     print("  Validation took: {:.4f}s".format(epoch_time))
     return epoch_time, accuracy
 
+def predict(model,prediction_dataloader, device):
+
+    total_prediction_time=0
+    #warm-up
+    input_ids,input_mask = preprocess_input(["First inference for warm-up"])
+    with torch.no_grad():
+        model(torch.tensor(input_ids),attention_mask=torch.tensor(input_mask))
+    #end of warm-up
+
+    for batch in prediction_dataloader:
+        batch = tuple(t.to(device) for t in batch)
+
+        # Unpack the inputs from our dataloader
+        b_input_ids, b_input_mask = batch
+
+        # Run inference
+        with torch.no_grad():
+            t0 = time.time()
+            outputs = model(b_input_ids,
+                            attention_mask=b_input_mask,
+                            labels=None)
+            t1 = time.time() - t0
+
+            total_prediction_time += t1
+
+        # Get the "logits" output by the model. The "logits" are the output
+        # values prior to applying an activation function like the softmax.
+        logits = outputs.logits
+
+        # Move logits
+        logits = logits.detach().cpu().numpy()
+
+        # predictions
+        pred_flat = np.argmax(logits, axis=1).flatten()
+        print(pred_flat)
+
+    print("  Prediction took: {:.4f}s".format(total_prediction_time))
+
 def load_dataset(args):
     # 2. Loading CoLA Dataset
 
@@ -254,34 +292,27 @@ def load_dataset(args):
     return train_dataloader, validation_dataloader
 
 def load_pred_dataset(args):
-    #df = pd.read_csv(os.path.join(os.getcwd(), "cola_in_domain_test.tsv"), delimiter='\t', header=None, names=['Id', 'Sentence'])
+
+    if args.input_file is None:
+        raise ValueError('Input for prediction not provided!')
+
     if not os.path.exists(args.input_file):
             raise ValueError('Invalid model path: %s' % args.input_file)
+
     df = pd.read_csv(args.input_file, delimiter='\t', header=None, names=['Id', 'Sentence'])
     sentences = df.Sentence.values
-    labels = None
+
     input_ids,attention_masks = preprocess_input(sentences)
-    b_input_ids = torch.tensor(input_ids)
-    b_input_mask = torch.tensor(attention_masks)
-    return b_input_ids,b_input_mask
-def predict(model,b_input_ids, b_input_mask):
-    # input preprocessing
-    with torch.no_grad():
-        outputs = model(b_input_ids,
-                        attention_mask=b_input_mask,
-                        labels=None)
-        print("outputs----------",outputs)
 
-    # Get the "logits" output by the model. The "logits" are the output
-    # values prior to applying an activation function like the softmax.
-    logits = outputs[0]
-    print("logits----------------", logits)
+    input_ids = torch.tensor(input_ids)
+    input_mask = torch.tensor(attention_masks)
 
-    # Move logits
-    logits = logits.detach().cpu().numpy()
-    # predictions
-    pred_flat = np.argmax(logits, axis=1).flatten()
-    print(pred_flat)
+    #Create DataLoader for prediction dataset
+    prediction_data = TensorDataset(input_ids, input_mask)
+    prediction_sampler = SequentialSampler(prediction_data)
+    prediction_dataloader = DataLoader(prediction_data, sampler=prediction_sampler, batch_size=args.test_batch_size)
+
+    return prediction_dataloader
 
 def preprocess_input(sentences):
     # 3. Tokenization & Input Formatting
@@ -382,7 +413,7 @@ def main():
                         help='run inference')
     parser.add_argument('--model', type=str, default=None,
                         help='Path to saved model')
-    parser.add_argument('--input_file',
+    parser.add_argument('--input-file', type=str, default=None,
                         help="Inputfile for Prediction")
     args = parser.parse_args()
 
@@ -462,7 +493,7 @@ def main():
                 total_test_time += test_time
 
         if args.save_model:
-            torch.save(model,"./bert_for_sequence_classification.pt")
+            torch.save(model.state_dict(),"./bert_for_sequence_classification.pt")
 
         assert validation_accuracy > 0.5
 
@@ -480,25 +511,39 @@ def main():
 
     else:
         # 2. Dataloader
-        # TODO: Change to load custom input dataset
-        #train_dataloader, validation_dataloader = load_dataset(args)
-        b_input_ids,b_input_mask = load_pred_dataset(args)
+        # Load input dataset for prediction
+        prediction_dataloader  = load_pred_dataset(args)
 
         #Check if model path exists
+        if args.model is None:
+            raise ValueError('Model not provided!')
         if not os.path.exists(args.model):
             raise ValueError('Invalid model path: %s' % args.model)
 
         # 3. Load Model
-        model = torch.load(args.model)
-        print("Running prediction on validation dataset using fine-tuned model {}".format(args.model))
+        # Load BertForSequenceClassification, the pretrained BERT model with a single
+        # linear classification layer on top.
+        config = AutoConfig.from_pretrained(
+                "bert-base-uncased",
+                num_labels=2,
+                num_hidden_layers=args.num_hidden_layers,
+                output_attentions = False, # Whether the model returns attentions weights.
+                output_hidden_states = False, # Whether the model returns all hidden-states.
+        )
+        model = BertForSequenceClassification.from_pretrained(
+            "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
+            config=config
+        )
+        model.load_state_dict(torch.load(args.model,map_location=torch.device('cpu')))
+
         if not args.pytorch_only:
             provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
             model = ORTModule(model, provider_configs=provider_configs)
 
         # 4. Predict
-        # TODO: Change to run prediction on custom dataset
-        #test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-        predict(model,b_input_ids,b_input_mask)
+        # Run prediction
+        print("Running prediction using model {}".format(args.model))
+        predict(model,prediction_dataloader, device)
         print("\n Prediction complete")
 
 if __name__ == '__main__':
