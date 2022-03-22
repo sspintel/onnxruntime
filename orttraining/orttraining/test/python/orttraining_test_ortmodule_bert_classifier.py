@@ -220,8 +220,71 @@ def load_dataset(args):
     sentences = df.sentence.values
     labels = df.label.values
 
-    # 3. Tokenization & Input Formatting
+    # Input preprocessing
+    input_ids,attention_masks = preprocess_input(sentences)
 
+    # Use 90% for training and 10% for validation.
+    train_inputs, validation_inputs, train_labels, validation_labels = train_test_split(input_ids, labels,
+                                                                random_state=2018, test_size=0.1)
+    # Do the same for the masks.
+    train_masks, validation_masks, _, _ = train_test_split(attention_masks, labels,
+                                                random_state=2018, test_size=0.1)
+
+    # Convert all inputs and labels into torch tensors, the required datatype
+    # for our model.
+    train_inputs = torch.tensor(train_inputs)
+    validation_inputs = torch.tensor(validation_inputs)
+
+    train_labels = torch.tensor(train_labels)
+    validation_labels = torch.tensor(validation_labels)
+
+    train_masks = torch.tensor(train_masks)
+    validation_masks = torch.tensor(validation_masks)
+
+    # Create the DataLoader for our training set.
+    train_data = TensorDataset(train_inputs, train_masks, train_labels)
+    train_sampler = RandomSampler(train_data)
+    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.batch_size)
+
+    # Create the DataLoader for our validation set.
+    validation_data = TensorDataset(validation_inputs, validation_masks, validation_labels)
+    validation_sampler = SequentialSampler(validation_data)
+    validation_dataloader = DataLoader(validation_data, sampler=validation_sampler, batch_size=args.test_batch_size)
+
+    return train_dataloader, validation_dataloader
+
+def load_pred_dataset(args):
+    #df = pd.read_csv(os.path.join(os.getcwd(), "cola_in_domain_test.tsv"), delimiter='\t', header=None, names=['Id', 'Sentence'])
+    if not os.path.exists(args.input_file):
+            raise ValueError('Invalid model path: %s' % args.input_file)
+    df = pd.read_csv(args.input_file, delimiter='\t', header=None, names=['Id', 'Sentence'])
+    sentences = df.Sentence.values
+    labels = None
+    input_ids,attention_masks = preprocess_input(sentences)
+    b_input_ids = torch.tensor(input_ids)
+    b_input_mask = torch.tensor(attention_masks)
+    return b_input_ids,b_input_mask
+def predict(model,b_input_ids, b_input_mask):
+    # input preprocessing
+    with torch.no_grad():
+        outputs = model(b_input_ids,
+                        attention_mask=b_input_mask,
+                        labels=None)
+        print("outputs----------",outputs)
+
+    # Get the "logits" output by the model. The "logits" are the output
+    # values prior to applying an activation function like the softmax.
+    logits = outputs[0]
+    print("logits----------------", logits)
+
+    # Move logits
+    logits = logits.detach().cpu().numpy()
+    # predictions
+    pred_flat = np.argmax(logits, axis=1).flatten()
+    print(pred_flat)
+
+def preprocess_input(sentences):
+    # 3. Tokenization & Input Formatting
     # Load the BERT tokenizer.
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
@@ -267,40 +330,8 @@ def load_dataset(args):
 
         # Store the attention mask for this sentence.
         attention_masks.append(att_mask)
+    return input_ids, attention_masks
 
-    # Use 90% for training and 10% for validation.
-    train_inputs, validation_inputs, train_labels, validation_labels = train_test_split(input_ids, labels,
-                                                                random_state=2018, test_size=0.1)
-    # Do the same for the masks.
-    train_masks, validation_masks, _, _ = train_test_split(attention_masks, labels,
-                                                random_state=2018, test_size=0.1)
-
-    # Convert all inputs and labels into torch tensors, the required datatype
-    # for our model.
-    train_inputs = torch.tensor(train_inputs)
-    validation_inputs = torch.tensor(validation_inputs)
-
-    train_labels = torch.tensor(train_labels)
-    validation_labels = torch.tensor(validation_labels)
-
-    train_masks = torch.tensor(train_masks)
-    validation_masks = torch.tensor(validation_masks)
-
-    # Create the DataLoader for our training set.
-    train_data = TensorDataset(train_inputs, train_masks, train_labels)
-    train_sampler = RandomSampler(train_data)
-    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.batch_size)
-
-    # Create the DataLoader for our validation set.
-    validation_data = TensorDataset(validation_inputs, validation_masks, validation_labels)
-    validation_sampler = SequentialSampler(validation_data)
-    validation_dataloader = DataLoader(validation_data, sampler=validation_sampler, batch_size=args.test_batch_size)
-
-    return train_dataloader, validation_dataloader
-
-def load_pred_dataset():
-def predict():
-def preprocess_input():
 
 # Function to calculate the accuracy of our predictions vs labels
 def flat_accuracy(preds, labels):
@@ -351,6 +382,8 @@ def main():
                         help='run inference')
     parser.add_argument('--model', type=str, default=None,
                         help='Path to saved model')
+    parser.add_argument('--input_file',
+                        help="Inputfile for Prediction")
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
@@ -449,7 +482,7 @@ def main():
         # 2. Dataloader
         # TODO: Change to load custom input dataset
         #train_dataloader, validation_dataloader = load_dataset(args)
-        load_pred_dataset()
+        b_input_ids,b_input_mask = load_pred_dataset(args)
 
         #Check if model path exists
         if not os.path.exists(args.model):
@@ -465,7 +498,7 @@ def main():
         # 4. Predict
         # TODO: Change to run prediction on custom dataset
         #test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-        predict()
+        predict(model,b_input_ids,b_input_mask)
         print("\n Prediction complete")
 
 if __name__ == '__main__':
