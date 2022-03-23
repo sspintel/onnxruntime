@@ -218,7 +218,6 @@ def predict(model,prediction_dataloader, device):
                             attention_mask=b_input_mask,
                             labels=None)
             t1 = time.time() - t0
-
             total_prediction_time += t1
 
         # Get the "logits" output by the model. The "logits" are the output
@@ -234,8 +233,8 @@ def predict(model,prediction_dataloader, device):
             orig_sent = tokenizer.decode(b_input_ids[i], skip_special_tokens=True)
             results[orig_sent] = pred_flat[i]
 
-    print("\n\Sentence classification(0-not acceptable, 1-acceptable): \n\n","\n".join("{!r}: {!r},".format(k, v) for k, v in results.items()))
-    print("  Prediction took: {:.4f}s".format(total_prediction_time))
+    print("\tSentence classification(0-not acceptable, 1-acceptable): \n\n","\n".join("\t{!r}: {!r},".format(k, v) for k, v in results.items()))
+    print("\tPrediction took: {:.4f}s".format(total_prediction_time))
 
 def load_dataset(args):
     # 2. Loading CoLA Dataset
@@ -429,7 +428,7 @@ def main():
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
-    if torch.cuda.is_available() and not args.no_cuda and not args.predict:
+    if torch.cuda.is_available() and not args.no_cuda:
         device = torch.device("cuda")
         print('There are %d GPU(s) available.' % torch.cuda.device_count())
         print('We will use the GPU:', torch.cuda.get_device_name(0))
@@ -545,9 +544,9 @@ def main():
             "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
             config=config
         )
-        model.load_state_dict(torch.load(args.model,map_location=torch.device('cpu')))
+        model.load_state_dict(torch.load(args.model))
 
-        if not args.pytorch_only:
+        if not args.pytorch_only and device=="cpu":
             provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
             model = ORTModule(model, provider_configs=provider_configs)
 
