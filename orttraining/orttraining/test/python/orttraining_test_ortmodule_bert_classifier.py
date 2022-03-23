@@ -234,7 +234,7 @@ def predict(model,prediction_dataloader, device):
             results[orig_sent] = pred_flat[i]
 
     print("\tSentence classification(0-not acceptable, 1-acceptable): \n\n","\n".join("\t{!r}: {!r},".format(k, v) for k, v in results.items()))
-    print("\tPrediction took: {:.4f}s".format(total_prediction_time))
+    print("\nPrediction took: {:.4f}s".format(total_prediction_time))
 
 def load_dataset(args):
     # 2. Loading CoLA Dataset
@@ -554,7 +554,6 @@ def main():
         # Run prediction
         print("\nRunning prediction using model {}".format(args.model))
         predict(model,prediction_dataloader, device)
-        print("\n Prediction complete")
 
 if __name__ == '__main__':
     main()
