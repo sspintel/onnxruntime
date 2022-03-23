@@ -1,5 +1,6 @@
 import logging
 import argparse
+from tracemalloc import get_tracemalloc_memory
 import torch
 import wget
 import os
@@ -195,6 +196,9 @@ def test(model, validation_dataloader, device, args):
 def predict(model,prediction_dataloader, device):
 
     total_prediction_time=0
+    results={}
+    tokenizer = get_tokenizer()
+
     #warm-up
     input_ids,input_mask = preprocess_input(["First inference for warm-up"])
     with torch.no_grad():
@@ -226,8 +230,11 @@ def predict(model,prediction_dataloader, device):
 
         # predictions
         pred_flat = np.argmax(logits, axis=1).flatten()
-        print(pred_flat)
+        for i in range(len(b_input_ids)):
+            orig_sent = tokenizer.decode(b_input_ids[i], skip_special_tokens=True)
+            results[orig_sent] = pred_flat[i]
 
+    print("\n\Sentence classification(0-not acceptable, 1-acceptable): \n\n","\n".join("{!r}: {!r},".format(k, v) for k, v in results.items()))
     print("  Prediction took: {:.4f}s".format(total_prediction_time))
 
 def load_dataset(args):
@@ -293,14 +300,14 @@ def load_dataset(args):
 
 def load_pred_dataset(args):
 
-    if args.input_file is None:
-        raise ValueError('Input for prediction not provided!')
-
-    if not os.path.exists(args.input_file):
-            raise ValueError('Invalid model path: %s' % args.input_file)
-
-    df = pd.read_csv(args.input_file, delimiter='\t', header=None, names=['Id', 'Sentence'])
-    sentences = df.Sentence.values
+    if args.input_file is not None:
+        if not os.path.exists(args.input_file):
+                raise ValueError('Invalid model path: %s' % args.input_file)
+        df = pd.read_csv(args.input_file, delimiter='\t', header=None, names=['Id', 'Sentence'], skiprows=1)
+        sentences = df.Sentence.values
+    else:
+        print('Input dataset not provided! Using sample input for prediction.')
+        sentences=['This is a sample input.', 'This is sample input not.']
 
     input_ids,attention_masks = preprocess_input(sentences)
 
@@ -314,10 +321,14 @@ def load_pred_dataset(args):
 
     return prediction_dataloader
 
+def get_tokenizer():
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+    return tokenizer
+
 def preprocess_input(sentences):
     # 3. Tokenization & Input Formatting
     # Load the BERT tokenizer.
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+    tokenizer = get_tokenizer()
 
     # Set the max length of encoded sentence.
     # 64 is slightly larger than the maximum training sentence length of 47...
@@ -542,7 +553,7 @@ def main():
 
         # 4. Predict
         # Run prediction
-        print("Running prediction using model {}".format(args.model))
+        print("\nRunning prediction using model {}".format(args.model))
         predict(model,prediction_dataloader, device)
         print("\n Prediction complete")
 
