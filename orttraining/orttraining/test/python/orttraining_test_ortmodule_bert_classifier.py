@@ -199,13 +199,8 @@ def predict(model,prediction_dataloader, device):
     results={}
     tokenizer = get_tokenizer()
 
-    #warm-up
-    input_ids,input_mask = preprocess_input(["First inference for warm-up"])
-    with torch.no_grad():
-        model(torch.tensor(input_ids),attention_mask=torch.tensor(input_mask))
-    #end of warm-up
-
     for batch in prediction_dataloader:
+        warm_up = True
         batch = tuple(t.to(device) for t in batch)
 
         # Unpack the inputs from our dataloader
@@ -213,6 +208,13 @@ def predict(model,prediction_dataloader, device):
 
         # Run inference
         with torch.no_grad():
+            #warm-up
+            if warm_up:
+                model(b_input_ids,
+                      attention_mask=b_input_mask,
+                      labels=None)
+                warm_up=False
+            #infer
             t0 = time.time()
             outputs = model(b_input_ids,
                             attention_mask=b_input_mask,
@@ -299,14 +301,16 @@ def load_dataset(args):
 
 def load_pred_dataset(args):
 
-    if args.input_file is not None:
+    if args.input is not None:
+        sentences = [args.input]
+    elif args.input_file is not None:
         if not os.path.exists(args.input_file):
                 raise ValueError('Invalid model path: %s' % args.input_file)
         df = pd.read_csv(args.input_file, delimiter='\t', header=None, names=['Id', 'Sentence'], skiprows=1)
         sentences = df.Sentence.values
     else:
-        print('Input dataset not provided! Using sample input for prediction.')
-        sentences=['This is a sample input.', 'This is sample input not.']
+        print("Input not provided! Using default input")
+        sentences = ["This is a sample input."]
 
     input_ids,attention_masks = preprocess_input(sentences)
 
@@ -418,13 +422,15 @@ def main():
     parser.add_argument('--data-dir', type=str, default='./cola_public/raw',
                         help='Path to the bert data directory')
     parser.add_argument('--save-model', action='store_true', default=False,
-                        help='Path to save fine tuned model in current directory')
+                        help='Path to save fine tuned model in current directory post training')
     parser.add_argument('--predict', action='store_true', default=False,
                         help='run inference')
-    parser.add_argument('--model', type=str, default=None,
-                        help='Path to saved model')
+    parser.add_argument('--model-path', type=str, default=None,
+                        help='Path to fine tuned model for prediction')
+    parser.add_argument('--input', type=str, default=None,
+                        help="Singe input sentence for prediction")
     parser.add_argument('--input-file', type=str, default=None,
-                        help="Inputfile for Prediction")
+                        help="Input file in .tsv format for prediction")
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
@@ -525,10 +531,10 @@ def main():
         prediction_dataloader  = load_pred_dataset(args)
 
         #Check if model path exists
-        if args.model is None:
+        if args.model_path is None:
             raise ValueError('Model not provided!')
-        if not os.path.exists(args.model):
-            raise ValueError('Invalid model path: %s' % args.model)
+        if not os.path.exists(args.model_path):
+            raise ValueError('Invalid model path: %s' % args.model_path)
 
         # 3. Load Model
         # Load BertForSequenceClassification, the pretrained BERT model with a single
@@ -544,7 +550,7 @@ def main():
             "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
             config=config
         )
-        model.load_state_dict(torch.load(args.model))
+        model.load_state_dict(torch.load(args.model_path))
 
         if not args.pytorch_only and device=="cpu":
             provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
@@ -552,7 +558,7 @@ def main():
 
         # 4. Predict
         # Run prediction
-        print("\nRunning prediction using model {}".format(args.model))
+        print("\nRunning prediction using model {}".format(args.model_path))
         predict(model,prediction_dataloader, device)
 
 if __name__ == '__main__':
