@@ -61,6 +61,7 @@ std::set<std::string> ops_supported_only_in_model = {
 //Ops which are supported as functions (as composite ops)
 std::set<std::string> ops_supported_as_function = {
     "LessOrEqual",
+    "GreaterOrEqual",
 };
 
 std::vector<SupportedOp> supported_op_mode = {
@@ -282,6 +283,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"Clip", V_2022_1, {"All"}});
   no_dimension_supported_.push_back({"Resize", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Equal", V_2021_2, {"MYRIAD"}});
+  no_dimension_supported_.push_back({"Equal", V_2022_1, {"CPU"}});
   no_dimension_supported_.push_back({"Reshape", V_2021_3, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Reshape", V_2022_1, {"All"}});
   no_dimension_supported_.push_back({"Ceil", V_2021_3, {"MYRIAD"}});
@@ -294,8 +296,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"ReduceProd", V_2022_1, {"CPU","GPU"}});
   no_dimension_supported_.push_back({"QuantizeLinear", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"DequantizeLinear", V_2021_4, {"All"}});
-  no_dimension_supported_.push_back({"Shape", V_2022_1, {"GPU"}});
-  
+  no_dimension_supported_.push_back({"Shape", V_2022_1, {"GPU"}});  
 
   subgraph_supported_.push_back({"Mul", V_2020_4, {"All"}});
   subgraph_supported_.push_back({"Transpose", V_2020_4, {"All"}});
@@ -1075,7 +1076,7 @@ void DataOps::populate_op_mode_supported() {
     op_list_.insert({"Slice", obj});
   }
   {
-    UnsupportedOpMode obj = {{V_2020_4, V_2021_1, V_2021_2, V_2021_3, V_2021_4, V_2022_1},
+    UnsupportedOpMode obj = {{V_2020_4, V_2021_1, V_2021_2, V_2021_3, V_2021_4},
                              [this](const Node* node, const InitializedTensorSet&) {
                                //Shape can't have empty axes attribute
                                const auto& attributes = node->GetAttributes();
@@ -1111,8 +1112,9 @@ void DataOps::populate_op_mode_supported() {
                                 //If the operator is unsqueeze
                                 //If axes is an input, then we cannot produce a static graph. Conversion fails in convert_function_to_cnn_network.
                                 for (size_t i = 0; i < node->InputDefs().size(); i++) {
-                                  if(node->InputDefs()[i]->Name() == "axes")
+                                  if(node->InputDefs()[i]->Name() == "axes"){
                                     return true;
+                                  }
                                 }
                                 return (!this->dimension_unsupported(node));
                              }};
@@ -1166,6 +1168,17 @@ void DataOps::populate_op_mode_supported() {
                                return (!this->dimension_unsupported(node));
                              }};
     op_list_.insert({"ReduceSum", obj});
+  }
+  {
+    UnsupportedOpMode obj = {{V_2022_1},
+                             [this](const Node* node, const InitializedTensorSet&) {
+                                auto& attributes = node->GetAttributes();
+                                if (attributes.count("mode") == 0 || attributes.at("mode").s() == "linear") {
+                                  return true;
+                                }
+                                return false;
+                             }};
+    op_list_.insert({"Resize", obj});
   }
 }
 
@@ -1315,18 +1328,6 @@ bool DataOps::dimension_unsupported(const Node* node) {
     if (node->OpType().find("Pool") != std::string::npos) {
       if (input_dims != 4 && input_dims != 5)
         return false;
-    }
-
-    if (node->OpType() == "Unsqueeze") {
-      auto& attributes = node->GetAttributes();
-      int64_t axes_size = attributes.count("axes") > 0 ? attributes.at("axes").ints().size() : 0;
-      if (device_id_.find("GPU") != std::string::npos) {
-        if (axes_size == 0)
-          return true;
-      }
-      if (input_dims + axes_size > 5 || axes_size == 0) {
-        return false;
-      }
     }
 
     if (node->OpType() == "ReduceSum") {
