@@ -51,11 +51,8 @@ RUN apt update; apt install -y unattended-upgrades && \
     unattended-upgrade
 ARG BUILD_UID=1001
 ARG BUILD_USER=onnxruntimedev
-ARG RENDER_GROUP_ID
 RUN adduser --uid $BUILD_UID $BUILD_USER
-RUN echo ${RENDER_GROUP_ID}
-RUN addgroup --gid ${RENDER_GROUP_ID} render
-RUN usermod -a -G render,users ${BUILD_USER}
+RUN usermod -a -G video,users ${BUILD_USER}
 ENV WORKDIR_PATH /home/${BUILD_USER}
 WORKDIR ${WORKDIR_PATH}
 
