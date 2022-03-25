@@ -298,8 +298,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"ReduceProd", V_2022_1, {"CPU","GPU"}});
   no_dimension_supported_.push_back({"QuantizeLinear", V_2021_4, {"All"}});
   no_dimension_supported_.push_back({"DequantizeLinear", V_2021_4, {"All"}});
-  no_dimension_supported_.push_back({"Shape", V_2022_1, {"GPU"}});
-  
+  no_dimension_supported_.push_back({"Shape", V_2022_1, {"GPU"}});  
 
   subgraph_supported_.push_back({"Mul", V_2020_4, {"All"}});
   subgraph_supported_.push_back({"Transpose", V_2020_4, {"All"}});
@@ -1128,7 +1127,7 @@ void DataOps::populate_op_mode_supported() {
                                 //If the operator is unsqueeze
                                 //If axes is an input, then we cannot produce a static graph. Conversion fails in convert_function_to_cnn_network.
                                 for (size_t i = 0; i < node->InputDefs().size(); i++) {
-                                  if(node->InputDefs()[i]->Name() == "axes") {
+                                  if(node->InputDefs()[i]->Name() == "axes"){
                                     return true;
                                   }
                                 }
@@ -1184,6 +1183,17 @@ void DataOps::populate_op_mode_supported() {
                                return (!this->dimension_unsupported(node));
                              }};
     op_list_.insert({"ReduceSum", obj});
+  }
+  {
+    UnsupportedOpMode obj = {{V_2022_1},
+                             [this](const Node* node, const InitializedTensorSet&) {
+                                auto& attributes = node->GetAttributes();
+                                if (attributes.count("mode") == 0 || attributes.at("mode").s() == "linear") {
+                                  return true;
+                                }
+                                return false;
+                             }};
+    op_list_.insert({"Resize", obj});
   }
 }
 
@@ -1334,19 +1344,6 @@ bool DataOps::dimension_unsupported(const Node* node) {
       if (input_dims != 4 && input_dims != 5)
         return false;
     }
-    /*
-    if (node->OpType() == "Unsqueeze") {
-      auto& attributes = node->GetAttributes();
-      int64_t axes_size = attributes.count("axes") > 0 ? attributes.at("axes").ints().size() : 0;
-      if (device_id_.find("GPU") != std::string::npos) {
-        if (axes_size == 0)
-          return true;
-      }
-      if (input_dims + axes_size > 5 || axes_size == 0) {
-        return false;
-      }
-    }
-    */
 
     if (node->OpType() == "ReduceSum") {
       auto& attributes = node->GetAttributes();
