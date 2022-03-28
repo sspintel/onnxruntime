@@ -552,7 +552,7 @@ def main():
         )
         model.load_state_dict(torch.load(args.model_path))
 
-        if not args.pytorch_only and device=="cpu":
+        if not args.pytorch_only:
             provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
             model = ORTModule(model, provider_configs=provider_configs)
 
