@@ -275,6 +275,7 @@ void DataOps::populate_op_mode_supported() {
   no_dimension_supported_.push_back({"Max", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Add", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Add", V_2022_1, {"All"}});
+  no_dimension_supported_.push_back({"And", V_2022_1, {"All"}});
   no_dimension_supported_.push_back({"Less", V_2021_2, {"MYRIAD"}});
   no_dimension_supported_.push_back({"Less", V_2022_1, {"CPU"}});
   no_dimension_supported_.push_back({"Greater", V_2021_2, {"MYRIAD"}});
