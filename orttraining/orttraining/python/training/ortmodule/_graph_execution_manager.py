@@ -39,6 +39,10 @@ from enum import IntFlag
 
 from torch.utils.cpp_extension import ROCM_HOME
 
+from transformers import BertTokenizer, BertModel
+from transformers.onnx.convert import export, validate_model_outputs
+from transformers.models.bert import BertOnnxConfig, BertConfig
+from pathlib import Path
 
 class _RunStateInfo(object):
     def __init__(self, state, output_info):
@@ -414,6 +418,7 @@ class GraphExecutionManager(GraphExecutionInterface):
         else:
            try:
                with torch.no_grad():
+                   '''
                    required_export_kwargs = {'input_names': self._input_info.names,
                                              'output_names': output_names,
                                              'opset_version': ortmodule.ONNX_OPSET_VERSION,
@@ -432,12 +437,20 @@ class GraphExecutionManager(GraphExecutionInterface):
                                      sample_inputs_as_tuple,
                                      f,
                                      **required_export_kwargs,
-                                     **self._export_extra_kwargs)
+                                     **self._export_extra_kwargs) 
+                   '''
+                   tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+                   model = BertModel.from_pretrained("bert-base-uncased")
+                   config = BertConfig()
+                   f = Path("/home/avidiyal/sjayanthi/torchort_utils/onnx/bert_base_uncased.onnx")
+                   onnx_config = BertOnnxConfig(config)
+                   export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)      
            except Exception as e:
                raise wrap_exception(ORTModuleONNXModelException,
                                     RuntimeError(f'There was an error while exporting the PyTorch model to ONNX: '
                                                  f'\n\n{_utils.get_exception_as_string(e)}'))
-           exported_model = onnx.load_model_from_string(f.getvalue())
+           #exported_model = onnx.load_model_from_string(f.getvalue())
+           exported_model = onnx.load_model(f)
 
         return exported_model
 
