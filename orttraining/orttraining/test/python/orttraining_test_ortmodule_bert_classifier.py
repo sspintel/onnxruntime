@@ -234,8 +234,12 @@ def predict(model,prediction_dataloader, device):
         for i in range(len(b_input_ids)):
             orig_sent = tokenizer.decode(b_input_ids[i], skip_special_tokens=True)
             results[orig_sent] = pred_flat[i]
-
-    print("\tSentence classification(0-not acceptable, 1-acceptable): \n\n","\n".join("\t{!r}: {!r},".format(k, v) for k, v in results.items()))
+    count = 0 
+    print("Sentence classification(0-not acceptable, 1-acceptable): \n")
+    for k, v in results.items():
+        print("\t{!r} : {!r}".format(k,v))
+        if count == 20: break
+        count = count + 1
     print("\nPrediction took: {:.4f}s".format(total_prediction_time))
 
 def load_dataset(args):
@@ -431,6 +435,13 @@ def main():
                         help="Singe input sentence for prediction")
     parser.add_argument('--input-file', type=str, default=None,
                         help="Input file in .tsv format for prediction")
+    parser.add_argument('--provider', type=str, default="openvino",
+                        help="Execution Provider")
+    parser.add_argument('--backend_device', type=str, default="CPU",
+                        help="Backend device for prediction") 
+    parser.add_argument('--precision', type=str, default="FP32",
+                        help="precision for prediction(Default FP32)")                      
+
     args = parser.parse_args()
 
     # Device (CPU vs CUDA)
@@ -553,7 +564,7 @@ def main():
         model.load_state_dict(torch.load(args.model_path))
 
         if not args.pytorch_only:
-            provider_configs = ProviderConfigs(provider="openvino", backend="CPU_FP32")
+            provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend_device, precision=args.precision)
             model = ORTModule(model, provider_configs=provider_configs)
 
         # 4. Predict
