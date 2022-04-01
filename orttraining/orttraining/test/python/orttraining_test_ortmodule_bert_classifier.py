@@ -235,8 +235,7 @@ def predict(model,prediction_dataloader, device):
             orig_sent = tokenizer.decode(b_input_ids[i], skip_special_tokens=True)
             results[orig_sent] = pred_flat[i]
     count = 0 
-    print("Sentence classification(0-not acceptable, 1-acceptable): \n")
-    print("\tPrinting first 20 results:\n")
+    print("\nSentence classification(0-not acceptable, 1-acceptable): \n")
     for k, v in results.items():
         print("\t{!r} : {!r}".format(k,v))
         if count == 20: break
@@ -401,7 +400,7 @@ def main():
     # 1. Basic setup
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--pytorch-only', action='store_true', default=False,
-                        help='disables ONNX Runtime training')
+                        help='disables ONNX Runtime training/inference')
     parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 32)')
     parser.add_argument('--test-batch-size', type=int, default=64, metavar='N',
@@ -437,11 +436,11 @@ def main():
     parser.add_argument('--input-file', type=str, default=None,
                         help="Input file in .tsv format for prediction")
     parser.add_argument('--provider', type=str, default="openvino",
-                        help="Execution Provider for prediction")
+                        help="Execution Provider")
     parser.add_argument('--backend', type=str, default="CPU",
-                        help="Backend for prediction")
+                        help="Backend name")
     parser.add_argument('--precision', type=str, default="FP32",
-                        help="precision for prediction(Default FP32)")                      
+                        help="Precision for prediction(Default FP32)")
 
     args = parser.parse_args()
 
@@ -565,7 +564,7 @@ def main():
         model.load_state_dict(torch.load(args.model_path))
 
         if not args.pytorch_only:
-            provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend_device, precision=args.precision)
+            provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend, precision=args.precision)
             model = ORTModule(model, provider_configs=provider_configs)
 
         # 4. Predict
