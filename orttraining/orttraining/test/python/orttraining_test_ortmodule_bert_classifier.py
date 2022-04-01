@@ -236,6 +236,7 @@ def predict(model,prediction_dataloader, device):
             results[orig_sent] = pred_flat[i]
     count = 0 
     print("Sentence classification(0-not acceptable, 1-acceptable): \n")
+    print("\tPrinting first 20 results:\n")
     for k, v in results.items():
         print("\t{!r} : {!r}".format(k,v))
         if count == 20: break
@@ -432,13 +433,13 @@ def main():
     parser.add_argument('--model-path', type=str, default=None,
                         help='Path to fine tuned model for prediction')
     parser.add_argument('--input', type=str, default=None,
-                        help="Singe input sentence for prediction")
+                        help="Input sentence for prediction")
     parser.add_argument('--input-file', type=str, default=None,
                         help="Input file in .tsv format for prediction")
     parser.add_argument('--provider', type=str, default="openvino",
-                        help="Execution Provider")
-    parser.add_argument('--backend_device', type=str, default="CPU",
-                        help="Backend device for prediction") 
+                        help="Execution Provider for prediction")
+    parser.add_argument('--backend', type=str, default="CPU",
+                        help="Backend for prediction")
     parser.add_argument('--precision', type=str, default="FP32",
                         help="precision for prediction(Default FP32)")                      
 
