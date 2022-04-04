@@ -65,9 +65,9 @@ def register():
         return g.op("com.microsoft::Inverse", self).setType(self.type())
     _reg(inverse)
 
-    def gelu(g, self):
-        return g.op("com.microsoft::Gelu", self).setType(self.type())
-    _reg(gelu)
+    # def gelu(g, self):
+    #     return g.op("com.microsoft::Gelu", self).setType(self.type())
+    # _reg(gelu)
 
     def triu(g, self, diagonal):
         return g.op("com.microsoft::Trilu", self, diagonal, upper_i=1).setType(self.type())

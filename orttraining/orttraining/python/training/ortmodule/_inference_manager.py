@@ -19,6 +19,8 @@ from ._fallback import ORTModuleFallbackException, _FallbackPolicy, _FallbackMan
 from onnxruntime.capi import _pybind_state as C
 import torch
 import warnings
+import time
+
 
 
 class InferenceManager(GraphExecutionManager):
@@ -45,8 +47,15 @@ class InferenceManager(GraphExecutionManager):
         # Use IO binding
         _utils._create_iobinding(io_binding, inputs, onnx_model, device)
 
+        start = time.time()
         # Run and return module outputs.
         ort_output = execution_session.run_forward(io_binding, run_options)
+        end = time.time()
+        # print()
+        # print()
+        # print(" $$$$$$$$$$$ Session Run time in ms: ", (end-start) * 1000)
+        # print()
+        # print()
         forward_outputs, run_id = ort_output.ortvalues, ort_output.run_id
         user_outputs = tuple(_utils._ortvalue_to_torch_tensor(
             forward_output._ortvalue, device) for forward_output in forward_outputs)
@@ -87,11 +96,19 @@ class InferenceManager(GraphExecutionManager):
             if self._skip_check.is_set(_SkipCheck.SKIP_CHECK_BUILD_GRADIENT) is False or \
                 not self._onnx_models.exported_model:
                 # Exporting module to ONNX for the first time
+                # print("------------ Inside  Build graph ------")
+                start = time.time()
                 build_graph = self._export_model(*inputs, **kwargs)
+                end = time.time()
+                # print(" Time taken for _export_model build = ", (end-start)*1000, " ms")
+                # print("--------- Build graph done ----")
                 if build_graph:
                     # If model was exported, then initialize the graph builder
+                    # print(" !!!!!!!!!! Inside Initialise graph builder !!!!!!!!!! ")
+                    start = time.time()
                     self._initialize_graph_builder(training=False)
-
+                    end= time.time()
+                    # print(" Time in initialize_graph_builder = ", (end-start)*1000, " ms")
                 # Build the inference graph
                 if build_graph:
                     self._build_graph()
@@ -108,20 +125,22 @@ class InferenceManager(GraphExecutionManager):
                                             torch.are_deterministic_algorithms_enabled() is not
                                             _are_deterministic_algorithms_enabled())
                 _use_deterministic_algorithms(torch.are_deterministic_algorithms_enabled())
-
+                
+                # print("##########  Inside Create execution session ######## ")
                 if self._device != module_device:
                     self._device = module_device
 
             if create_execution_session:
                 # Create execution session creates the inference_session
                 self._create_execution_agent()
+                # print(" Create execution agent DONE ######")
 
             if self._skip_check.is_set(_SkipCheck.SKIP_CHECK_DEVICE) is False:
                 # Assert that the input and model device match
                 _utils._check_same_device(self._device, "Input argument to forward", *inputs)
 
             user_outputs, _ = InferenceManager.execution_session_run_forward(self._execution_agent,
-                                                                             self._onnx_models.optimized_model,
+                                                                             self._onnx_models.exported_model,
                                                                              self._device,
                                                                              *_io._combine_input_buffers_initializers(
                                                                                  self._graph_initializers,
@@ -136,10 +155,12 @@ class InferenceManager(GraphExecutionManager):
                                              user_outputs)
         except ORTModuleFallbackException as e:
             # Exceptions subject to fallback are handled here
+            # print(" Fallback  Exceptions subject to fallback are handled here ")
             self._fallback_manager.handle_exception(exception=e,
                                                     log_level=self._debug_options.logging.log_level)
         except Exception as e:
             # Catch-all FALLBACK_FORCE_TORCH_FORWARD fallback is handled here
+            # print(" FALLBACK Catch-all FALLBACK_FORCE_TORCH_FORWARD fallback is handled here ")
             self._fallback_manager.handle_exception(exception=e,
                                                     log_level=self._debug_options.logging.log_level,
                                                     override_policy=_FallbackPolicy.FALLBACK_FORCE_TORCH_FORWARD)
@@ -152,6 +173,7 @@ class InferenceManager(GraphExecutionManager):
         """Build an optimized inference graph using the module_graph_builder"""
 
         super()._build_graph()
+        # print(" BUILD GRAPH obj created ^^^^^ ")
         if self._debug_options.save_onnx_models.save:
             self._onnx_models.save_optimized_model(self._debug_options.save_onnx_models.path,
                                                    self._debug_options.save_onnx_models.name_prefix,
@@ -161,5 +183,11 @@ class InferenceManager(GraphExecutionManager):
         """Creates an InferenceAgent that can run forward graph on an inference model"""
 
         session_options, providers, provider_options = self._get_session_config()
-        self._execution_agent = InferenceAgent(self._onnx_models.optimized_model.SerializeToString(),
+        # print(" %%%%%%%%%% In creating execution agent - InferenceAgent Call %%%%%%%%% ")
+        start = time.time()
+        self._execution_agent = InferenceAgent(self._onnx_models.exported_model.SerializeToString(),
                                                session_options, providers, provider_options)
+        end = time.time()
+        # print(" Time for creating _execution_agent = ", (end-start)*1000, " ms")
+        
+        

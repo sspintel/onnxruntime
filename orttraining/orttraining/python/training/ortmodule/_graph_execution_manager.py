@@ -393,6 +393,7 @@ class GraphExecutionManager(GraphExecutionInterface):
         provider = self._provider_configs.provider
         if not provider == "openvino":
            try:
+               
                with torch.set_grad_enabled(self._enable_custom_autograd_function), \
                       _logger.suppress_os_stream_output(log_level=self._debug_options.logging.log_level):
 
@@ -424,8 +425,9 @@ class GraphExecutionManager(GraphExecutionInterface):
                                                     self._debug_options.logging.log_level)
         else:
            try:
-               with torch.no_grad():
-                   '''
+                '''
+                with torch.no_grad():
+                   
                    required_export_kwargs = {'input_names': self._input_info.names,
                                              'output_names': output_names,
                                              'opset_version': ortmodule.ONNX_OPSET_VERSION,
@@ -445,18 +447,20 @@ class GraphExecutionManager(GraphExecutionInterface):
                                      f,
                                      **required_export_kwargs,
                                      **self._export_extra_kwargs) 
-                   '''
-                   tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-                   model = BertModel.from_pretrained("bert-base-uncased")
-                   config = BertConfig()
-                   f = Path("/home/avidiyal/sjayanthi/torchort_utils/onnx/bert_base_uncased.onnx")
-                   onnx_config = BertOnnxConfig(config)
-                   export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)      
+                   
+                '''
+                tokenizer = BertTokenizer.from_pretrained('distilbert-base-cased')
+                model = BertModel.from_pretrained("distilbert-base-cased")
+                config = BertConfig()
+                f = Path("distilbert_cased_inline/distilbert-base-cased.onnx")
+                onnx_config = BertOnnxConfig(config)
+                export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)   
            except Exception as e:
                raise wrap_exception(ORTModuleONNXModelException,
                                     RuntimeError(f'There was an error while exporting the PyTorch model to ONNX: '
                                                  f'\n\n{_utils.get_exception_as_string(e)}'))
-           #exported_model = onnx.load_model_from_string(f.getvalue())
+        #    exported_model = onnx.load_model_from_string(f.getvalue())
+        #    offline_model = "/home/preetha/ovpt_mvp/frameworks.ai.edgecsp.pytorch-integration-models/nlp_models_onnx/distilbert-base-cased/distilbert-base-cased.onnx"
            exported_model = onnx.load_model(f)
 
         return exported_model
