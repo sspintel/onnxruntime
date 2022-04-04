@@ -18,7 +18,7 @@ def download_labels(labels):
         labels = "imagenet_classes.txt"
         if not os.path.exists(labels):
             # Download the file (if we haven't already)
-            wget.download(labels)
+            wget.download(labelsUrl)
         else:
             print("\nReusing downloaded imagenet labels")
 
@@ -47,16 +47,16 @@ def predict(model,image,categories):
     t0 = time.time()
     outputs = model(image)
     t1 = time.time() - t0
-    print("\nInference time: {:.4f}ms".format(t1 * 1000))
+    print("\nInference time: {:.4f}ms\n".format(t1 * 1000))
 
     # The output has unnormalized scores. Run a softmax on it for probabilities.
     probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
 
     # Show top categories per image
     top5_prob, top5_catid = torch.topk(probabilities, 5)
-    print("Labels, Probabilities:")
+    print("Labels , Probabilities:")
     for i in range(top5_prob.size(0)):
-        print(categories[top5_catid[i]], top5_prob[i].item())
+        print(categories[top5_catid[i]],top5_prob[i].item())
 
 def main():
     # 1. Basic setup
