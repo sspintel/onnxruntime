@@ -1,0 +1,6 @@
+version: "3.8"
+services:
+  ovmanylinux:
+    build: 
+      context: .
+      dockerfile: ./tools/ci_build/github/linux/docker/Dockerfile.2_27ubuntu

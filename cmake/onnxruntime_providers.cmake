@@ -740,6 +740,8 @@ if (onnxruntime_USE_OPENVINO)
     "${ONNXRUNTIME_ROOT}/core/providers/openvino/*.cpp"
     "${ONNXRUNTIME_ROOT}/core/providers/shared_library/*.h"
     "${ONNXRUNTIME_ROOT}/core/providers/shared_library/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/*.h"
+    "${ONNXRUNTIME_ROOT}/core/providers/shared/*.cc"
   )
 
   if (WIN32)
@@ -747,12 +749,13 @@ if (onnxruntime_USE_OPENVINO)
   endif()
 
   # Header paths
-  find_package(InferenceEngine REQUIRED)
-  find_package(ngraph REQUIRED)
+  # find_package(InferenceEngine REQUIRED)
+  # find_package(ngraph REQUIRED)
  
   if (OPENVINO_2022_1)
-  find_package(OpenVINO REQUIRED COMPONENTS Runtime ONNX)
-  list (OV_20_LIBS openvino::frontend::onnx openvino::runtime)
+  #find_package(OpenVINO REQUIRED COMPONENTS Runtime ONNX)
+  #list (OV_20_LIBS openvino::frontend::onnx openvino::runtime)
+  list (APPEND OV_20_LIBS $ENV{LD_LIBRARY_PATH}/libopenvino.so $ENV{LD_LIBRARY_PATH}/libopenvino_onnx_frontend.so)
   endif()
  
   if (WIN32)

@@ -48,8 +48,9 @@ PACKAGE_LIST="autotools-dev \
 	bzip2 \
 	unzip \
 	zip \
+	python-numpy \
 	rsync libunwind8 libpng-dev libexpat1-dev \
-	python3-setuptools python3-numpy python3-wheel python python3-pip python3-pytest \
+	python3-setuptools python3-wheel python python3-pip python3-pytest \
 	openjdk-11-jdk \
 	graphviz"
 

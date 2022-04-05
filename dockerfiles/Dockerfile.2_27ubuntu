@@ -1,0 +1,123 @@
+FROM ubuntu:18.04
+ARG POLICY=manylinux_2_27
+ARG PLATFORM=x86_64
+#ARG OPENVINO_VERSION=2022.1
+ARG PYTHON_VERSION=3.8
+#ARG PYTHON_VERSION=3.6
+#RUN add apt-repository universe
+USER root
+#RUN apt install python3.8
+#RUN python --version
+RUN apt update
+ADD ./tools/ci_build/github/linux/docker/scripts /tmp/scripts
+RUN /tmp/scripts/install_ubuntu.sh -p $PYTHON_VERSION 
+RUN /tmp/scripts/install_os_deps.sh 
+RUN /tmp/scripts/install_python_deps.sh -p $PYTHON_VERSION 
+RUN rm -rf /tmp/scripts
+
+RUN apt install python3-pip -y --no-install-recommends
+RUN python3 -m pip install numpy wheel setuptools
+RUN pip3 install --upgrade pip setuptools wheel
+RUN apt-get install libpython3.8 -y --no-install-recommends
+RUN python3.8 -m pip install openvino-dev==2022.1.0.dev20220316
+
+
+ENV AUDITWHEEL_POLICY=${POLICY} AUDITWHEEL_ARCH=${PLATFORM} AUDITWHEEL_PLAT=${POLICY}_${PLATFORM}
+ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8
+ENV INTEL_OPENVINO_DIR /usr/local/lib/python3.8/dist-packages/openvino
+ENV InferenceEngine_LIBRARIES /usr/local/lib/python3.8/dist-packages/openvino/inference_engine
+ENV LD_LIBRARY_PATH $INTEL_OPENVINO_DIR/libs
+ENV NGRAPH_LIBRARIES /usr/local/lib/python3.8/dist-packages/ngraph
+
+
+
+RUN apt update && apt install -y libnuma1 ocl-icd-libopencl1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/scripts
+
+
+# ENV WORKDIR_PATH=/home/openvino
+ENV DEBIAN_FRONTEND noninteractive
+
+ARG DEVICE=CPU_FP32 
+ARG ONNXRUNTIME_REPO=https://github.com/intel/onnxruntime.git
+ARG ONNXRUNTIME_BRANCH=sahar/manylinux
+
+#ENV HTTP_PROXY=http://proxy-us.intel.com:911
+#ENV HTTPS_PROXY=http://proxy-us.intel.com:912
+RUN wget https://storage.openvinotoolkit.org/repositories/openvino/packages/master/2022.1.0.dev20220316/l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316.tgz
+RUN tar -xvzf l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316.tgz
+
+RUN apt update; apt install -y git protobuf-compiler libprotobuf-dev
+RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO} 
+WORKDIR /onnxruntime
+RUN git submodule update --init --recursive
+RUN chmod +x /onnxruntime/dockerfiles/scripts/install_common_deps.sh
+RUN ./dockerfiles/scripts/install_common_deps.sh
+RUN ln -s cmake-* cmake-dir
+WORKDIR /l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316
+
+RUN cp ./runtime/cmake/InferenceEngineConfig.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/InferenceEngineConfig-version.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/OpenVINOConfig.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/OpenVINOTargets.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/OpenVINOConfig-version.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/OpenVINOTargets-release.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/ngraphConfig.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/ngraphConfigVersion.cmake /onnxruntime/cmake
+RUN cp ./runtime/cmake/ie_parallel.cmake /onnxruntime/cmake
+WORKDIR /onnxruntime 
+RUN mkdir -p external
+RUN mkdir -p /cmake/include
+RUN mkdir -p /cmake/3rdparty
+
+RUN cp -r /l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/include /onnxruntime/cmake/include
+RUN cp -r /l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/3rdparty /onnxruntime/cmake/3rdparty
+RUN cp /l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/cmake/InferenceEngineConfig.cmake /onnxruntime/external
+RUN cp /l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/cmake/ngraphConfig.cmake /onnxruntime/external
+RUN cd cmake
+
+
+
+
+
+#RUN cp l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/cmake/InferenceEngineConfig.cmake onnxruntime/external
+#RUN cp l_openvino_toolkit_ubuntu18_dev_2022.1.0_dev20220316/runtime/cmake/ngraphConfig.cmake onnxruntime/external
+
+COPY ./cmake/CMakeLists.txt /onnxruntime/cmake
+COPY ./cmake/onnxruntime_providers.cmake /onnxruntime/cmake
+
+COPY ./setup.py /onnxruntime/
+
+ENV PATH=${WORKDIR_PATH}/cmake-dir/bin:$PATH
+# RUN apt update
+
+RUN pip3 install onnx
+RUN apt install cython -y --no-install-recommends
+RUN apt install patchelf -y --no-install-recommends
+RUN pip3 install auditwheel 
+RUN pip3 install auditwheel-symbols 
+WORKDIR /onnxruntime
+RUN ls
+RUN chmod +x build.sh
+
+CMD ["sleep","10000"]
+#COPY ./runtime/include/openvino/core/attribute_adapter.hpp /onnxruntime/runtime/include/openvino/core/attribute_adapter.hpp
+#RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_wheel
+#RUN ./build.sh --config RelWithDebInfo --parallel --use_openvino CPU_FP32 --update --build --build_shared_lib --build_wheel
+# COPY cmake/include /onnxruntime/cmake/include
+# COPY cmake/3rdparty /onnxruntime/cmake/3rdparty
+# COPY ./cmake/InferenceEngineConfig.cmake /onnxruntime/cmake/external
+# COPY ./cmake/ngraphConfig.cmake /onnxruntime/cmake/external
+
+#COPY runtime /onnxruntime/runtime#
+# RUN python3 -c "from openvino.inference_engine import IECore"  
+#COPY ./openvino-2022.1.0-6976-cp36-cp36m-manylinux_2_27_x86_64.whl /tmp
+#RUN pip3 install tmp/openvino-2022.1.0-6976-cp36-cp36m-manylinux_2_27_x86_64.whl
+#RUN apt update
+
+
+
+# RUN wget --no-proxy http://nncv-nas-01.ccr.corp.intel.com/ovino-pkg/packages/nightly/2022WW11.5/releases/2022/1/625/irc/linux/l_openvino_toolkit_p_2022.1.0.625_offline.sh
+# RUN chmod +x l_openvino_toolkit_p_2022.1.0.625_offline.sh
+# RUN ./l_openvino_toolkit_p_2022.1.0.625_offline.sh -a -s --eula accept
+#RUN /bin/bash -c "source /opt/intel/openvino_2022.1.625/setupvars.sh"

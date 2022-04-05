@@ -723,6 +723,9 @@ if (NOT WIN32 AND NOT onnxruntime_PREFER_SYSTEM_LIB)
 endif()
 # External dependencies
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/external)
+set(InferenceEngine_DIR ${CMAKE_MODULE_PATH})
+set(OpenVINO_DIR ${CMAKE_MODULE_PATH})
+set(ngraph_DIR ${CMAKE_MODULE_PATH})
 
 #protobuf begin
 
