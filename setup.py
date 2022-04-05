@@ -1,4 +1,4 @@
-# ------------------------------------------------------------------------
+ ------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 # ------------------------------------------------------------------------
@@ -85,17 +85,18 @@ elif parse_arg_remove_boolean(sys.argv, '--use_armnn'):
 # manylinux2014_ppc64le
 # manylinux2014_s390x
 manylinux_tags = [
-    'manylinux1_x86_64',
-    'manylinux1_i686',
-    'manylinux2010_x86_64',
-    'manylinux2010_i686',
-    'manylinux2014_x86_64',
-    'manylinux2014_i686',
-    'manylinux2014_aarch64',
-    'manylinux2014_armv7l',
-    'manylinux2014_ppc64',
-    'manylinux2014_ppc64le',
-    'manylinux2014_s390x',
+    #'manylinux1_x86_64',
+    #'manylinux1_i686',
+    #'manylinux2010_x86_64',
+    #'manylinux2010_i686',
+    #'manylinux2014_x86_64',
+    #'manylinux2014_i686',
+    #'manylinux2014_aarch64',
+    #'manylinux2014_armv7l',
+    #'manylinux2014_ppc64',
+    #'manylinux2014_ppc64le',
+    #'manylinux2014_s390x',
+    'manylinux_2_27_x86_64'
 ]
 is_manylinux = environ.get('AUDITWHEEL_PLAT', None) in manylinux_tags
 
