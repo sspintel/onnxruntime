@@ -1121,7 +1121,7 @@ void DataOps::populate_op_mode_supported() {
                              }};
     op_list_.insert({"Unsqueeze", obj});
   }
-  {
+/*  {
     UnsupportedOpMode obj = {{V_2022_1},
                              [this](const Node* node, const InitializedTensorSet&) {
                                 //If the operator is unsqueeze
@@ -1134,7 +1134,7 @@ void DataOps::populate_op_mode_supported() {
                                 return (!this->dimension_unsupported(node));
                              }};
     op_list_.insert({"Unsqueeze", obj});
-  }
+  } */
   {
     UnsupportedOpMode obj = {{V_2021_1, V_2021_2, V_2021_3, V_2021_4, V_2022_1},
                              [this](const Node* node, const InitializedTensorSet&) {
