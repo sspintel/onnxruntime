@@ -20,6 +20,7 @@ from onnxruntime.capi import _pybind_state as C
 import torch
 import warnings
 import time
+import numpy as np
 
 
 
@@ -41,6 +42,7 @@ class InferenceManager(GraphExecutionManager):
         #   especially the backward graph outputs.
         # REVIEW(codemzs): Consolidate Training Agent with InferenceAgent on C++ side to not
         # have the need for passing IOBinding.
+
         io_binding = execution_session.io_binding()
         run_options = C.RunOptions()
 
@@ -48,14 +50,26 @@ class InferenceManager(GraphExecutionManager):
         _utils._create_iobinding(io_binding, inputs, onnx_model, device)
 
         start = time.time()
-        # Run and return module outputs.
+        # # Run and return module outputs.
         ort_output = execution_session.run_forward(io_binding, run_options)
         end = time.time()
-        # print()
-        # print()
-        # print(" $$$$$$$$$$$ Session Run time in ms: ", (end-start) * 1000)
-        # print()
-        # print()
+
+        # np_input = {"input_ids":np.array([[101, 100, 100, 100, 100, 100, 100, 102],
+        #                                                            [101, 100, 100, 100, 100, 100, 100, 102]]),
+        #                                    "token_type_ids": np.array([[0, 0, 0, 0, 0, 0, 0, 0],
+        #                                                               [0, 0, 0, 0, 0, 0, 0, 0]]),
+        #                                    "attention_mask":np.array([[1, 1, 1, 1, 1, 1, 1, 1],
+        #                                                               [1, 1, 1, 1, 1, 1, 1, 1]])}
+        
+        # ort_output = execution_session.run(np_input)
+        # end = time.time()
+
+        print()
+        print()
+        print(" $$$$$$$$$$$ Session Run time in ms: ", (end-start) * 1000)
+        print()
+        print()
+        # exit(1)
         forward_outputs, run_id = ort_output.ortvalues, ort_output.run_id
         user_outputs = tuple(_utils._ortvalue_to_torch_tensor(
             forward_output._ortvalue, device) for forward_output in forward_outputs)
@@ -66,6 +80,36 @@ class InferenceManager(GraphExecutionManager):
         run_info = _RunStateInfo(state, output_info)
         # Return user outputs and forward run information
         return user_outputs, run_info
+
+    @staticmethod
+    def execution_session_run(execution_session, onnx_model, device, *inputs):
+        """Runs the forward graph on execution_session with given model inputs and device"""
+
+        # TODO: Try to reuse the output buffers as some of the output tensors are same sizes,
+        #   especially the backward graph outputs.
+        # REVIEW(codemzs): Consolidate Training Agent with InferenceAgent on C++ side to not
+        # have the need for passing IOBinding.
+
+        start = time.time()
+        # model_input = {"input_ids":np.array([[101, 100, 100, 100, 100, 100, 100, 102],
+        #                                                            [101, 100, 100, 100, 100, 100, 100, 102]]),
+        #                                    "token_type_ids": np.array([[0, 0, 0, 0, 0, 0, 0, 0],
+        #                                                               [0, 0, 0, 0, 0, 0, 0, 0]]),
+        #                                    "attention_mask":np.array([[1, 1, 1, 1, 1, 1, 1, 1],
+        #                                                               [1, 1, 1, 1, 1, 1, 1, 1]])}
+        model_input = _utils._create_run_input(inputs, onnx_model, device)
+        # print(" model_input = ", model_input)
+        ort_output = execution_session.run(model_input)
+        end = time.time()
+
+        print()
+        print()
+        print(" $$$$$$$$$$$ Session Run time in ms: ", (end-start) * 1000)
+        print()
+        print()
+   
+        # Return user outputs and forward run information
+        return ort_output
 
     def forward(self, *inputs, **kwargs):
         '''Forward pass of the inference model
@@ -96,19 +140,14 @@ class InferenceManager(GraphExecutionManager):
             if self._skip_check.is_set(_SkipCheck.SKIP_CHECK_BUILD_GRADIENT) is False or \
                 not self._onnx_models.exported_model:
                 # Exporting module to ONNX for the first time
-                # print("------------ Inside  Build graph ------")
                 start = time.time()
                 build_graph = self._export_model(*inputs, **kwargs)
                 end = time.time()
-                # print(" Time taken for _export_model build = ", (end-start)*1000, " ms")
-                # print("--------- Build graph done ----")
                 if build_graph:
                     # If model was exported, then initialize the graph builder
-                    # print(" !!!!!!!!!! Inside Initialise graph builder !!!!!!!!!! ")
                     start = time.time()
                     self._initialize_graph_builder(training=False)
                     end= time.time()
-                    # print(" Time in initialize_graph_builder = ", (end-start)*1000, " ms")
                 # Build the inference graph
                 if build_graph:
                     self._build_graph()
@@ -126,20 +165,34 @@ class InferenceManager(GraphExecutionManager):
                                             _are_deterministic_algorithms_enabled())
                 _use_deterministic_algorithms(torch.are_deterministic_algorithms_enabled())
                 
-                # print("##########  Inside Create execution session ######## ")
                 if self._device != module_device:
                     self._device = module_device
 
             if create_execution_session:
                 # Create execution session creates the inference_session
                 self._create_execution_agent()
-                # print(" Create execution agent DONE ######")
 
             if self._skip_check.is_set(_SkipCheck.SKIP_CHECK_DEVICE) is False:
                 # Assert that the input and model device match
                 _utils._check_same_device(self._device, "Input argument to forward", *inputs)
 
-            user_outputs, _ = InferenceManager.execution_session_run_forward(self._execution_agent,
+            if self._device.type == 'cpu':
+                if self._provider_configs.provider == "openvino":
+                    model_output = InferenceManager.execution_session_run(self._execution_agent,
+                                                                            self._onnx_models.exported_model,
+                                                                            self._device,
+                                                                            *_io._combine_input_buffers_initializers(
+                                                                                self._graph_initializers,
+                                                                                self._graph_info.user_input_names,
+                                                                                self._input_info,
+                                                                                self._flattened_module.named_buffers(),
+                                                                                inputs,
+                                                                                kwargs,
+                                                                                self._device))
+
+                    return model_output
+            else :
+                user_outputs, _ = InferenceManager.execution_session_run_forward(self._execution_agent,
                                                                              self._onnx_models.exported_model,
                                                                              self._device,
                                                                              *_io._combine_input_buffers_initializers(
@@ -150,9 +203,9 @@ class InferenceManager(GraphExecutionManager):
                                                                                  inputs,
                                                                                  kwargs,
                                                                                  self._device))
-
-            return _io.unflatten_user_output(self._module_output_schema,
-                                             user_outputs)
+                return _io.unflatten_user_output(self._module_output_schema,
+                                                 user_outputs)
+    
         except ORTModuleFallbackException as e:
             # Exceptions subject to fallback are handled here
             # print(" Fallback  Exceptions subject to fallback are handled here ")

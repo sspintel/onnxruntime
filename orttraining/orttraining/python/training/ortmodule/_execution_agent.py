@@ -7,7 +7,7 @@ import onnxruntime
 from onnxruntime.capi import _pybind_state as C
 from onnxruntime.capi.onnxruntime_inference_collection import IOBinding, OrtValue
 from onnxruntime.capi._pybind_state import TrainingAgent as C_TrainingAgent
-
+import time
 
 class ExecutionAgentOutput(object):
     def __init__(self, ortvalues, run_id=None):
@@ -69,9 +69,20 @@ class InferenceAgent(object):
 
         self._inference_session.run_with_iobinding(iobinding, run_options)
         ortvalues = iobinding.get_outputs()
+        # print(" Ort values out length from iobinding = ", ortvalues)
         return ExecutionAgentOutput(ortvalues)
 
-
+    def run(self, model_input) :
+        # print("Model input = ", model_input)
+        start = time.time()
+        ortvalues =  self._inference_session.run(None, model_input)
+        end = time.time()
+        print(" session run with np inp = ", (end-start) * 1000)
+        print()
+        print()
+        # print(" Ort values out length from run = ", ortvalues)
+        return ortvalues
+ 
 class TrainingAgent(object):
     """
     This is the main class used to run an ORTModule model training.

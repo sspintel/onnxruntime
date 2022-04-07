@@ -76,9 +76,9 @@ class ORTModule(torch.nn.Module):
 
             # Support contrib OPs
             pytorch_export_contrib_ops.register()
-            # if not provider_configs.provider == "openvino":
-            CustomOpSymbolicRegistry.register_all()
-            CustomGradientRegistry.register_all()
+            if not provider_configs.provider == "openvino":
+                CustomOpSymbolicRegistry.register_all()
+                CustomGradientRegistry.register_all()
 
             # Warn user if there are name collisions between user model's and ORTModule attributes
             # And if there are custom methods defined on the user's model, copy and bind them to

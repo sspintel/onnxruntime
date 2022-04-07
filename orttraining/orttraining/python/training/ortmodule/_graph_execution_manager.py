@@ -105,6 +105,8 @@ class GraphExecutionManager(GraphExecutionInterface):
         ortmodule.ONNX_OPSET_VERSION = ortmodule._defined_from_envvar(
             'ORTMODULE_ONNX_OPSET_VERSION', ortmodule.ONNX_OPSET_VERSION, warn=True)
 
+        print(" ORTModule opset version = ", ortmodule.ONNX_OPSET_VERSION)
+        # exit(1)
         # TrainingAgent or InferenceAgent
         self._execution_agent = None
 
@@ -425,7 +427,7 @@ class GraphExecutionManager(GraphExecutionInterface):
                                                     self._debug_options.logging.log_level)
         else:
            try:
-                '''
+                
                 with torch.no_grad():
                    
                    required_export_kwargs = {'input_names': self._input_info.names,
@@ -454,14 +456,45 @@ class GraphExecutionManager(GraphExecutionInterface):
                 config = BertConfig()
                 f = Path("distilbert_cased_inline/distilbert-base-cased.onnx")
                 onnx_config = BertOnnxConfig(config)
-                export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)   
+                export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)   '''
+
+                # from transformers.models.auto import AutoTokenizer
+                # from transformers.onnx.features import FeaturesManager
+                # from transformers import TensorType
+                # from itertools import chain
+                # from torch.onnx import export as onnx_export
+
+                # model_name = "distilbert-base-cased"
+                # onnx_model_path = "distilbert_cased_custom/distilbert-base-cased.onnx"
+                # f = Path(onnx_model_path)
+
+                # tokenizer = AutoTokenizer.from_pretrained(model_name)
+                # model = FeaturesManager.get_model_from_feature("default", model_name)
+                # model_kind, model_onnx_config = FeaturesManager.check_supported_model_or_raise(model, feature="default")
+                # onnx_config = model_onnx_config(model.config)
+                # onnx_outputs = list(onnx_config.outputs.keys())
+                # model_inputs = onnx_config.generate_dummy_inputs(tokenizer, framework=TensorType.PYTORCH)
+                # dynamic_axes={name: axes for name, axes in chain(onnx_config.inputs.items(), onnx_config.outputs.items())}
+                # export(tokenizer, model, onnx_config, onnx_config.default_onnx_opset, f)  
+
+                # onnx_export(
+                #     model,
+                #     (model_inputs,),
+                #     f=onnx_model_path,
+                #     input_names=list(onnx_config.inputs.keys()),
+                #     output_names=onnx_outputs,
+                #     dynamic_axes=dynamic_axes,
+                #     do_constant_folding=True,
+                #     opset_version=onnx_config.default_onnx_opset,
+                # )
+                
            except Exception as e:
                raise wrap_exception(ORTModuleONNXModelException,
                                     RuntimeError(f'There was an error while exporting the PyTorch model to ONNX: '
                                                  f'\n\n{_utils.get_exception_as_string(e)}'))
-        #    exported_model = onnx.load_model_from_string(f.getvalue())
+           exported_model = onnx.load_model_from_string(f.getvalue())
         #    offline_model = "/home/preetha/ovpt_mvp/frameworks.ai.edgecsp.pytorch-integration-models/nlp_models_onnx/distilbert-base-cased/distilbert-base-cased.onnx"
-           exported_model = onnx.load_model(f)
+        #    exported_model = onnx.load_model(f)
 
         return exported_model
 

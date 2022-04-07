@@ -506,10 +506,10 @@ def einsum(g, equation, tensor_list):
 
     return result
 
-@register_symbolic('gelu')
-def gelu(g, self):
-    from torch.onnx.symbolic_opset9 import add, mul
-    _sqrt2 = 1.4142135623730951
-    erf = g.op("Erf", g.op("Div", self, torch.tensor(_sqrt2, dtype=torch.double)))
-    erf_plusone = add(g, erf, g.op("Constant", value_t=torch.tensor(1, dtype=torch.double)))
-    return mul(g, mul(g, self, erf_plusone), g.op("Constant", value_t=torch.tensor(0.5, dtype=torch.double)))
+# @register_symbolic('gelu')
+# def gelu(g, self):
+#     from torch.onnx.symbolic_opset9 import add, mul
+#     _sqrt2 = 1.4142135623730951
+#     erf = g.op("Erf", g.op("Div", self, torch.tensor(_sqrt2, dtype=torch.double)))
+#     erf_plusone = add(g, erf, g.op("Constant", value_t=torch.tensor(1, dtype=torch.double)))
+#     return mul(g, mul(g, self, erf_plusone), g.op("Constant", value_t=torch.tensor(0.5, dtype=torch.double)))

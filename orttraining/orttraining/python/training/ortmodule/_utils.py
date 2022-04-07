@@ -170,6 +170,12 @@ def _create_iobinding(io_binding, inputs, model, device):
     for value_info in model.graph.output:
         io_binding.bind_output(value_info.name, device.type, device_id=get_device_index(device))
 
+def _create_run_input(inputs, model, device):
+    model_input = {}
+    for idx, value_info in enumerate(model.graph.input):
+        model_input[value_info.name]=inputs[idx].numpy()
+    return model_input
+
 def check_for_name_collisions_and_bind_methods_to_ortmodule(ortmodule: torch.nn.Module,
                                                             user_module: torch.nn.Module):
     """Warns if there are any common attributes between the user's model and ORTModule and binds user methods to ORTModule
