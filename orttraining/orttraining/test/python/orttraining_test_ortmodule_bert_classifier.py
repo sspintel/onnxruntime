@@ -194,15 +194,13 @@ def test(model, validation_dataloader, device, args):
     return epoch_time, accuracy
 
 def predict(model,prediction_dataloader, device):
-
     total_prediction_time=0
     results={}
     tokenizer = get_tokenizer()
+    warm_up = True
 
-    for batch in prediction_dataloader:
-        warm_up = True
+    for batch in prediction_dataloader:    
         batch = tuple(t.to(device) for t in batch)
-
         # Unpack the inputs from our dataloader
         b_input_ids, b_input_mask = batch
 
@@ -225,17 +223,17 @@ def predict(model,prediction_dataloader, device):
         # Get the "logits" output by the model. The "logits" are the output
         # values prior to applying an activation function like the softmax.
         logits = outputs.logits
-
+        
         # Move logits
         logits = logits.detach().cpu().numpy()
-
         # predictions
         pred_flat = np.argmax(logits, axis=1).flatten()
         for i in range(len(b_input_ids)):
             orig_sent = tokenizer.decode(b_input_ids[i], skip_special_tokens=True)
             results[orig_sent] = pred_flat[i]
-    count = 0 
+        
     print("\nSentence classification(0-not acceptable, 1-acceptable): \n")
+    count=0
     for k, v in results.items():
         print("\t{!r} : {!r}".format(k,v))
         if count == 20: break
