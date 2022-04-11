@@ -563,7 +563,9 @@ def main():
 
         if not args.pytorch_only:
             provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend, precision=args.precision)
-            model = ORTModule(model, provider_configs=provider_configs)
+            # Just for future debugging
+            debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='Resnet50ForImageClassification')
+            model = ORTModule(model, provider_configs=provider_configs, debug_options=debug_options)
 
         # 4. Predict
         # Run prediction

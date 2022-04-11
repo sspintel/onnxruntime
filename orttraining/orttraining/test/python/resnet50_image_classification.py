@@ -7,10 +7,7 @@ import argparse
 from PIL import Image
 from torchvision import transforms
 import torchvision.models as models
-
-#from torch_ort import ORTModule, DebugOptions
-from torch_ort import ORTModule, ProviderConfigs
-
+from torch_ort import ORTModule, ProviderConfigs, DebugOptions
 
 def download_labels(labels):
     if not labels:
@@ -73,13 +70,17 @@ def main():
                         help="Backend name")
     parser.add_argument('--precision', type=str, default="FP32",
                         help="Precision for prediction(Default FP32)")
+    parser.add_argument('--export-onnx-graphs', action='store_true', default=False,
+                        help='export ONNX graphs to current directory')
     args = parser.parse_args()
 
     # 2. Download and load the model
     model = models.resnet50(pretrained=True)
     if not args.pytorch_only:
         provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend, precision=args.precision)
-        model = ORTModule(model, provider_configs=provider_configs)
+        # Just for future debugging
+        debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='Resnet50ForImageClassification')
+        model = ORTModule(model, provider_configs=provider_configs, debug_options=debug_options)
 
     # Convert model for evaluation
     model.eval()
