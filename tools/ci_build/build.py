@@ -177,6 +177,8 @@ def parse_arguments():
     parser.add_argument(
         "--enable_training_torch_interop", action='store_true', help="Enable training kernels interop with torch.")
     parser.add_argument(
+        "--enable_ortmodule_inference", action='store_true', help="Enable inference in ORTModule.")
+    parser.add_argument(
         "--disable_nccl", action='store_true', help="Disable Nccl.")
     parser.add_argument(
         "--mpi_home", help="Path to MPI installation dir")
@@ -833,11 +835,11 @@ def generate_build_tree(cmake_path, source_dir, build_dir, cuda_home, cudnn_home
         "-Donnxruntime_ARMNN_BN_USE_CPU=" + ("OFF" if args.armnn_bn else "ON"),
         # Training related flags
         "-Donnxruntime_ENABLE_NVTX_PROFILE=" + ("ON" if args.enable_nvtx_profile else "OFF"),
-        "-Donnxruntime_ENABLE_TRAINING=" + ("ON" if args.enable_training else "OFF"),
+        "-Donnxruntime_ENABLE_TRAINING=" + ("ON" if (args.enable_training or args.enable_ortmodule_inference) else "OFF"),
         "-Donnxruntime_ENABLE_TRAINING_OPS=" + ("ON" if args.enable_training_ops else "OFF"),
         "-Donnxruntime_ENABLE_TRAINING_TORCH_INTEROP=" + ("ON" if args.enable_training_torch_interop else "OFF"),
         # Enable advanced computations such as AVX for some traininig related ops.
-        "-Donnxruntime_ENABLE_CPU_FP16_OPS=" + ("ON" if args.enable_training else "OFF"),
+        "-Donnxruntime_ENABLE_CPU_FP16_OPS=" + ("ON" if (args.enable_training or args.enable_ortmodule_inference) else "OFF"),
         "-Donnxruntime_USE_NCCL=" + ("OFF" if args.disable_nccl else "ON"),
         "-Donnxruntime_BUILD_BENCHMARKS=" + ("ON" if args.build_micro_benchmarks else "OFF"),
         "-Donnxruntime_USE_ROCM=" + ("ON" if args.use_rocm else "OFF"),
@@ -1800,7 +1802,7 @@ def run_nodejs_tests(nodejs_binding_dir):
 def build_python_wheel(
         source_dir, build_dir, configs, use_cuda, cuda_version, use_rocm, rocm_version, use_dnnl,
         use_tensorrt, use_openvino, use_nuphar, use_tvm, use_vitisai, use_acl, use_armnn, use_dml,
-        wheel_name_suffix, enable_training, nightly_build=False, default_training_package_device=False,
+        wheel_name_suffix, enable_training, enable_ortmodule_inference, nightly_build=False, default_training_package_device=False,
         use_ninja=False, build_eager_mode=False):
     for config in configs:
         cwd = get_config_build_dir(build_dir, config)
@@ -1819,6 +1821,8 @@ def build_python_wheel(
             args.append('--wheel_name_suffix={}'.format(wheel_name_suffix))
         if enable_training:
             args.append("--enable_training")
+        if enable_ortmodule_inference:
+            args.append("--enable_ortmodule_inference")
         if build_eager_mode:
             args.append("--disable_auditwheel_repair")
 
@@ -2448,6 +2452,7 @@ def main():
                 args.use_dml,
                 args.wheel_name_suffix,
                 args.enable_training,
+                args.enable_ortmodule_inference,
                 nightly_build=nightly_build,
                 default_training_package_device=default_training_package_device,
                 use_ninja=(args.cmake_generator == 'Ninja'),

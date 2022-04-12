@@ -329,6 +329,7 @@ local_version = None
 enable_training = parse_arg_remove_boolean(sys.argv, '--enable_training')
 disable_auditwheel_repair = parse_arg_remove_boolean(sys.argv, '--disable_auditwheel_repair')
 default_training_package_device = parse_arg_remove_boolean(sys.argv, '--default_training_package_device')
+enable_ortmodule_inference = parse_arg_remove_boolean(sys.argv, '--enable_ortmodule_inference')
 
 package_data = {}
 data_files = []
@@ -356,7 +357,7 @@ if not enable_training:
         'Operating System :: Microsoft :: Windows',
         'Operating System :: MacOS'])
 
-if enable_training:
+if enable_training or enable_ortmodule_inference:
     packages.extend(['onnxruntime.training',
                      'onnxruntime.training.amp',
                      'onnxruntime.training.experimental',
@@ -385,7 +386,10 @@ if enable_training:
     # onnxruntime-training-1.7.0.dev20210408+cu111-cp36-cp36m-linux_x86_64.whl
     # this is needed immediately by pytorch/ort so that the user is able to
     # install an onnxruntime training package with matching torch cuda version.
-    package_name = 'onnxruntime-training'
+    if not enable_ortmodule_inference:
+       package_name = 'onnxruntime-training'
+    else: 
+       package_name = 'onnxruntime-ortmodule-openvino'
 
     # we want put default training packages to pypi. pypi does not accept package with a local version.
     if not default_training_package_device or nightly_build:
@@ -458,7 +462,7 @@ if nightly_build:
     elif len(build_suffix) >= 12:
         raise RuntimeError(f'Incorrect build suffix: "{build_suffix}"')
 
-    if enable_training:
+    if enable_training or enable_ortmodule_inference:
         from packaging import version
         from packaging.version import Version
         # with training package, we need to bump up version minor number so that
@@ -500,7 +504,7 @@ with open(requirements_path) as f:
     install_requires = f.read().splitlines()
 
 
-if enable_training:
+if enable_training or enable_ortmodule_inference:
     def save_build_and_package_info(package_name, version_number, cuda_version, rocm_version):
         sys.path.append(path.join(path.dirname(__file__), 'onnxruntime', 'python'))
         from onnxruntime_collect_build_info import find_cudart_versions
