@@ -240,7 +240,7 @@ class GraphExecutionManager(GraphExecutionInterface):
             self._graph_builder.build(self._input_info.shape)
         else:
             self._graph_builder.build()
-
+        
         self._onnx_models.optimized_model = onnx.load_model_from_string(
             self._graph_builder.get_model())
 
@@ -428,7 +428,7 @@ class GraphExecutionManager(GraphExecutionInterface):
                                              'training': self._export_mode,
                                              'dynamic_axes': self._input_info.dynamic_axes,
                                              'verbose': self._debug_options.logging.log_level < LogLevel.WARNING,
-                                             'operator_export_type': OperatorExportTypes.ONNX_FALLTHROUGH,
+                                             'operator_export_type': OperatorExportTypes.ONNX_ATEN_FALLBACK,
                                              'export_params': True,
                                              'keep_initializers_as_inputs': False}
 
