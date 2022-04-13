@@ -1,4 +1,4 @@
-// Copyright(C) 2019 Intel Corporation
+// Copyright (C) 2019-2022 Intel Corporation
 // Licensed under the MIT License
 
 #include "core/providers/shared_library/provider_api.h"
@@ -58,6 +58,9 @@ struct OpenVINO_Provider : Provider {
   std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory(const void* void_params) override {
     auto& params = *reinterpret_cast<const OrtOpenVINOProviderOptions*>(void_params);
     return std::make_shared<OpenVINOProviderFactory>(params.device_type, params.enable_vpu_fast_compile, params.device_id, params.num_of_threads, params.use_compiled_network, params.blob_dump_path, params.context, params.enable_opencl_throttling);
+  }
+
+  void Initialize() override {
   }
 
   void Shutdown() override {
