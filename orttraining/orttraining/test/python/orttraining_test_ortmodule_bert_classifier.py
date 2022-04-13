@@ -319,6 +319,9 @@ def load_pred_dataset(args):
     input_ids = torch.tensor(input_ids)
     input_mask = torch.tensor(attention_masks)
 
+    if not args.test_batch_size:
+        args.test_batch_size = 1
+
     #Create DataLoader for prediction dataset
     prediction_data = TensorDataset(input_ids, input_mask)
     prediction_sampler = SequentialSampler(prediction_data)
@@ -509,13 +512,12 @@ def main():
 
         # 4. Train loop (fine-tune)
         total_training_time, total_test_time, epoch_0_training, validation_accuracy = 0, 0, 0, 0
-        if not args.predict:
-            for epoch_i in range(0, args.epochs):
-                total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
-                if not args.pytorch_only and epoch_i == 0:
-                    epoch_0_training = total_training_time
-                test_time, validation_accuracy = test(model, validation_dataloader, device, args)
-                total_test_time += test_time
+        for epoch_i in range(0, args.epochs):
+            total_training_time += train(model, optimizer, scheduler, train_dataloader, epoch_i, device, args)
+            if not args.pytorch_only and epoch_i == 0:
+                epoch_0_training = total_training_time
+            test_time, validation_accuracy = test(model, validation_dataloader, device, args)
+            total_test_time += test_time
 
         if args.save_model:
             torch.save(model.state_dict(),"./bert_for_sequence_classification.pt")
@@ -564,7 +566,7 @@ def main():
         if not args.pytorch_only:
             provider_configs = ProviderConfigs(provider=args.provider, backend=args.backend, precision=args.precision)
             # Just for future debugging
-            debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='Resnet50ForImageClassification')
+            debug_options = DebugOptions(save_onnx=args.export_onnx_graphs, onnx_prefix='BertForSequenceClassification')
             model = ORTModule(model, provider_configs=provider_configs, debug_options=debug_options)
 
         # 4. Predict
