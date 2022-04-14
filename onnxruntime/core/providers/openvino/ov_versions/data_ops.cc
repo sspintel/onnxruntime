@@ -1128,7 +1128,10 @@ void DataOps::populate_op_mode_supported() {
                                 //If axes is an input, then we cannot produce a static graph. Conversion fails in convert_function_to_cnn_network.
                                 for (size_t i = 0; i < node->InputDefs().size(); i++) {
                                   if(node->InputDefs()[i]->Name() == "axes") {
-                                    return true;
+                                    //std::cout << " Initializers " << std::endl;
+                                    const bool is_constant = (initializers.find(node->InputDefs()[1]->Name()) != initializers.end());
+                                    std::cout << " Const Value " << is_constant << std::endl;
+                                    return is_constant;
                                   }
                                 }
                                 return (!this->dimension_unsupported(node));
