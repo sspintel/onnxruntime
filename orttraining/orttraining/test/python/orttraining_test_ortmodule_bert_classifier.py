@@ -319,9 +319,6 @@ def load_pred_dataset(args):
     input_ids = torch.tensor(input_ids)
     input_mask = torch.tensor(attention_masks)
 
-    if not args.test_batch_size:
-        args.test_batch_size = 1
-
     #Create DataLoader for prediction dataset
     prediction_data = TensorDataset(input_ids, input_mask)
     prediction_sampler = SequentialSampler(prediction_data)
@@ -404,7 +401,7 @@ def main():
                         help='disables ONNX Runtime training/inference')
     parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 32)')
-    parser.add_argument('--test-batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, metavar='N',
                         help='input batch size for testing (default: 64)')
     parser.add_argument('--view-graphs', action='store_true', default=False,
                         help='views forward and backward graphs')
@@ -461,6 +458,8 @@ def main():
     logging.basicConfig(level=numeric_level)
 
     if not args.predict:
+        if not args.test_batch_size:
+            args.test_batch_size = 64
         # 2. Dataloader
         train_dataloader, validation_dataloader = load_dataset(args)
 
@@ -537,6 +536,8 @@ def main():
         print("  Accumulated validation took:              {:.4f}s".format(total_test_time))
 
     else:
+        if not args.test_batch_size:
+            args.test_batch_size = 1
         # 2. Dataloader
         # Load input dataset for prediction
         prediction_dataloader  = load_pred_dataset(args)
