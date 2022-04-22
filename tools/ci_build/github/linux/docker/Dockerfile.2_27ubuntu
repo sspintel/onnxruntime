@@ -1,0 +1,62 @@
+FROM openvino/ubuntu18_dev
+
+ARG PYTHON_VERSION=3.8
+ARG POLICY=manylinux_2_27
+ARG PLATFORM=x86_64
+USER root
+
+ADD ./tools/ci_build/github/linux/docker/scripts /tmp/scripts
+RUN /tmp/scripts/install_ubuntu.sh -p $PYTHON_VERSION 
+RUN pip3 install setuptools
+RUN /tmp/scripts/install_os_deps.sh 
+RUN /tmp/scripts/install_python_deps.sh -p $PYTHON_VERSION 
+#RUN /tmp/scripts/manylinux/install_deps.sh
+RUN rm -rf /tmp/scripts
+
+ENV AUDITWHEEL_POLICY=${POLICY} AUDITWHEEL_ARCH=${PLATFORM} AUDITWHEEL_PLAT=${POLICY}_${PLATFORM}
+#ENV INTEL_OPENVINO_DIR /opt/intel/openvino_2022.1.643
+#ENV InferenceEngine_LIBRARIES /opt/intel/openvino_2022.1.643/inference_engine
+#ENV LD_LIBRARY_PATH $INTEL_OPENVINO_DIR/libs
+#ENV NGRAPH_LIBRARIES /opt/intel/ngraph
+
+RUN apt update && apt install -y libnuma1 ocl-icd-libopencl1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/scripts
+
+ENV DEBIAN_FRONTEND noninteractive
+
+ARG DEVICE=CPU_FP32 
+ARG ONNXRUNTIME_REPO=https://github.com/intel/onnxruntime.git
+ARG ONNXRUNTIME_BRANCH=enable_2022.1_branch
+
+RUN apt update; apt install -y git protobuf-compiler libprotobuf-dev
+WORKDIR /
+RUN git clone --recursive -b ${ONNXRUNTIME_BRANCH} ${ONNXRUNTIME_REPO} 
+WORKDIR /onnxruntime
+
+
+RUN git submodule update --init --recursive
+
+RUN chmod +x dockerfiles/scripts/install_common_deps.sh
+RUN ./dockerfiles/scripts/install_common_deps.sh
+RUN ln -s cmake-* cmake-dir
+
+ENV PATH=${WORKDIR_PATH}/cmake-dir/bin:$PATH
+
+RUN pip3 install onnx
+RUN apt install cython -y --no-install-recommends
+RUN apt install patchelf -y --no-install-recommends
+RUN pip3 install auditwheel 
+RUN pip3 install auditwheel-symbols 
+WORKDIR /onnxruntime
+RUN ls
+RUN chmod +x build.sh
+#RUN ./build.sh --config Release --use_openvino CPU_FP32 --build --update --build_wheel --skip_tests
+RUN apt update; apt install -y vim
+CMD ["sleep","10000"]
+
+# ARG BUILD_UID=1000
+# ARG BUILD_USER=onnxruntimedev
+# RUN adduser --gecos 'onnxruntime Build User' --disabled-password $BUILD_USER --uid $BUILD_UID
+# WORKDIR /home/$BUILD_USER
+# USER $BUILD_USER
+
