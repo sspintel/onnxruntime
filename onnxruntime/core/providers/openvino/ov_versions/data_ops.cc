@@ -1123,7 +1123,7 @@ void DataOps::populate_op_mode_supported() {
   }
   {
     UnsupportedOpMode obj = {{V_2022_1},
-                             [this](const Node* node, const InitializedTensorSet&) {
+                             [this](const Node* node, const InitializedTensorSet& initializers) {
                                 //If the operator is unsqueeze
                                 //If axes is an input, then we cannot produce a static graph. Conversion fails in convert_function_to_cnn_network.
                                 for (size_t i = 0; i < node->InputDefs().size(); i++) {
