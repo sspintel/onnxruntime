@@ -51,6 +51,7 @@ wheel_name_suffix = parse_arg_remove_string(sys.argv, '--wheel_name_suffix=')
 cuda_version = None
 rocm_version = None
 is_rocm = False
+is_openvino = False
 # The following arguments are mutually exclusive
 if wheel_name_suffix == 'gpu':
     # TODO: how to support multiple CUDA versions?
@@ -60,6 +61,7 @@ elif parse_arg_remove_boolean(sys.argv, '--use_rocm'):
     package_name = 'onnxruntime-rocm' if not nightly_build else 'ort-rocm-nightly'
     rocm_version = parse_arg_remove_string(sys.argv, '--rocm_version=')
 elif parse_arg_remove_boolean(sys.argv, '--use_openvino'):
+    is_openvino = True
     package_name = 'onnxruntime-openvino'
 elif parse_arg_remove_boolean(sys.argv, '--use_dnnl'):
     package_name = 'onnxruntime-dnnl'
@@ -85,17 +87,18 @@ elif parse_arg_remove_boolean(sys.argv, '--use_armnn'):
 # manylinux2014_ppc64le
 # manylinux2014_s390x
 manylinux_tags = [
-    'manylinux1_x86_64',
-    'manylinux1_i686',
-    'manylinux2010_x86_64',
-    'manylinux2010_i686',
-    'manylinux2014_x86_64',
-    'manylinux2014_i686',
-    'manylinux2014_aarch64',
-    'manylinux2014_armv7l',
-    'manylinux2014_ppc64',
-    'manylinux2014_ppc64le',
-    'manylinux2014_s390x',
+    #'manylinux1_x86_64',
+    #'manylinux1_i686',
+    #'manylinux2010_x86_64',
+    #'manylinux2010_i686',
+    #'manylinux2014_x86_64',
+    #'manylinux2014_i686',
+    #'manylinux2014_aarch64',
+    #'manylinux2014_armv7l',
+    #'manylinux2014_ppc64',
+    #'manylinux2014_ppc64le',
+    #'manylinux2014_s390x',
+    'manylinux_2_27_x86_64'
 ]
 is_manylinux = environ.get('AUDITWHEEL_PLAT', None) in manylinux_tags
 
@@ -225,6 +228,7 @@ except ImportError as error:
 
 providers_cuda_or_rocm = 'libonnxruntime_providers_' + ('rocm.so' if is_rocm else 'cuda.so')
 providers_tensorrt_or_migraphx = 'libonnxruntime_providers_' + ('migraphx.so' if is_rocm else 'tensorrt.so')
+providers_openvino = 'libonnxruntime_providers_openvino.so'
 # Additional binaries
 if platform.system() == 'Linux':
     libs = ['onnxruntime_pybind11_state.so', 'libdnnl.so.2', 'libmklml_intel.so', 'libmklml_gnu.so', 'libiomp5.so',
@@ -267,6 +271,8 @@ else:
         libs.extend(['onnxruntime_pywrapper.dll'])
 
 if is_manylinux:
+    if (is_openvino == True):
+        dl_libs.append(providers_openvino)
     data = ['capi/libonnxruntime_pywrapper.so'] if nightly_build else []
     data += [path.join('capi', x) for x in dl_libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = [
