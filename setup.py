@@ -102,7 +102,6 @@ manylinux_tags = [
 ]
 is_manylinux = environ.get('AUDITWHEEL_PLAT', None) in manylinux_tags
 
-
 class build_ext(_build_ext):
     def build_extension(self, ext):
         dest_file = self.get_ext_fullpath(ext.name)
@@ -147,6 +146,17 @@ try:
                     f.write('except OSError:\n')
                     f.write('    import os\n')
                     f.write('    os.environ["ORT_TENSORRT_UNAVAILABLE"] = "1"\n')
+        
+        def _rewrite_ld_preload_openvino(self, to_preload):
+            with open('onnxruntime/capi/_ld_preload.py', 'a') as f:
+                if len(to_preload) > 0:
+                    f.write('from ctypes import CDLL, RTLD_GLOBAL\n')
+                    f.write('try:\n')
+                    for library in to_preload:
+                        f.write('    _{} = CDLL("{}", mode=RTLD_GLOBAL)\n'.format(library.split('.')[0], library))
+                    f.write('except OSError:\n')
+                    f.write('    import os\n')
+                    f.write('    os.environ["ORT_OPENVINO_UNAVAILABLE"] = "1"\n')
 
         def run(self):
             if is_manylinux:
@@ -161,6 +171,7 @@ try:
                 to_preload = []
                 to_preload_cuda = []
                 to_preload_tensorrt = []
+                to_preload_openvino = []
                 cuda_dependencies = []
                 args = ['patchelf', '--debug']
                 for line in result.stdout.split('\n'):
@@ -207,9 +218,26 @@ try:
                     if len(args) > 3:
                         subprocess.run(args, check=True, stdout=subprocess.PIPE)
 
+                dest = 'onnxruntime/capi/libonnxruntime_providers_openvino.so'
+                if path.isfile(dest):
+                    result = subprocess.run(['patchelf', '--print-needed', dest],
+                                            check=True, stdout=subprocess.PIPE, universal_newlines=True)
+                    openvino_dependencies = ['libopenvino.so', 'libtbb.so', 'libopenvino_onnx_frontend.so']
+                    args = ['patchelf', '--debug']
+                    for line in result.stdout.split('\n'):
+                        for dependency in (openvino_dependencies):
+                            if dependency in line:
+                                if dependency not in (to_preload):
+                                    to_preload_openvino.append(line)
+                                args.extend(['--remove-needed', line])
+                    args.append(dest)
+                    if len(args) > 3:
+                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
+
                 self._rewrite_ld_preload(to_preload)
                 self._rewrite_ld_preload_cuda(to_preload_cuda)
                 self._rewrite_ld_preload_tensorrt(to_preload_tensorrt)
+                self._rewrite_ld_preload_openvino(to_preload_openvino)
             _bdist_wheel.run(self)
             if is_manylinux and not disable_auditwheel_repair:
                 file = glob(path.join(self.dist_dir, '*linux*.whl'))[0]
