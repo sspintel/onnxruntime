@@ -15,8 +15,6 @@ import numpy as np
 import random
 import time
 import datetime
-
-
 import onnxruntime
 from onnxruntime.training.ortmodule import ORTModule, ProviderConfigs, DebugOptions
 
@@ -337,7 +335,7 @@ def preprocess_input(sentences):
 
     # Set the max length of encoded sentence.
     # 64 is slightly larger than the maximum training sentence length of 47...
-    MAX_LEN = 64
+    MAX_LEN = 512
 
     # Tokenize all of the sentences and map the tokens to their word IDs.
     input_ids = []
@@ -433,14 +431,43 @@ def main():
                         help="Input sentence for prediction")
     parser.add_argument('--input-file', type=str, default=None,
                         help="Input file in .tsv format for prediction")
-    parser.add_argument('--provider', type=str, default="openvino",
-                        help="Execution Provider")
-    parser.add_argument('--backend', type=str, default="CPU",
-                        help="Backend name")
-    parser.add_argument('--precision', type=str, default="FP32",
-                        help="Precision for prediction(Default FP32)")
+    parser.add_argument('--provider', type=str, default=None,
+                        help="ONNX Runtime Execution Provider for inference")
+    parser.add_argument('--backend', type=str, 
+                        help="Backend for Inference")
+    parser.add_argument('--precision', type=str,
+                        help="Precision for prediction")
 
     args = parser.parse_args()
+
+    # parameters validation
+    if args.provider:
+        if args.provider != "openvino":
+            raise Exception("Invalid provider string. Valid value is openvino")
+        if args.backend:
+            if args.backend not in ["CPU", "GPU" , "MYRIAD"]:
+                raise Exception("Invalid backend string. Valid values are CPU, GPU and MYRIAD") 
+            if args.backend == "CPU":
+                if args.precision != "FP32":
+                    raise Exception("Invalid precision for CPU. Valid value is FP32")
+            if args.backend == "GPU":
+                if args.precision not in ["FP32","FP16"]:
+                    raise Exception("Invalid precision for GPU. Valid values FP32 and FP16")
+            if args.backend == "MYRIAD":
+                if args.precision != "FP16":
+                    raise Exception("Invalid precision for MYRIAD. Valid value is FP16")
+        if args.precision:
+            if args.precision not in ["FP32","FP16"]:
+                raise Exception("Invalid precision string. Valid values are FP32 and FP16")
+            if args.precision == "FP16":
+                if args.backend not in  ["GPU", "MYRIAD"]:
+                    raise Exception("Invalid backend for FP16 precision. Valid values are GPU and MYRIAD")
+            if args.precision == "FP32":
+                if args.backend not in ["CPU", "GPU"]:
+                    raise Exception("Invalid backend for FP32 precision. Valid values are CPU and GPU")
+        if not (args.backend and args.precision):
+            print("Please provide both backend and precision. If not default values are taken as CPU and FP32")
+    
 
     # Device (CPU vs CUDA)
     if torch.cuda.is_available() and not args.no_cuda:

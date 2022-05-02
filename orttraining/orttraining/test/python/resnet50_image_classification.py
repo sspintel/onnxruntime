@@ -63,16 +63,45 @@ def main():
     parser.add_argument('--labels', type=str, default=None,
                         help="labels file")
     parser.add_argument('--input', type=str, required = True,
-                        help="input image")
-    parser.add_argument('--provider', type=str, default="openvino",
-                        help="Execution Provider")
-    parser.add_argument('--backend', type=str, default="CPU",
-                        help="Backend name")
-    parser.add_argument('--precision', type=str, default="FP32",
-                        help="Precision for prediction(Default FP32)")
+                        help="input image for inference")
+    parser.add_argument('--provider', type=str,
+                        help="ONNX Runtime Execution Provider for inference")
+    parser.add_argument('--backend', type=str,
+                        help="Backend for inference")
+    parser.add_argument('--precision', type=str,
+                        help="Precision for prediction")
     parser.add_argument('--export-onnx-graphs', action='store_true', default=False,
                         help='export ONNX graphs to current directory')
     args = parser.parse_args()
+ 
+    # parameters validation
+    if args.provider:
+        if args.provider != "openvino":
+            raise Exception("Invalid provider string. Valid value is openvino")
+        if args.backend:
+            if args.backend not in ["CPU", "GPU" , "MYRIAD"]:
+                raise Exception("Invalid backend string. Valid values are CPU, GPU and MYRIAD") 
+            if args.backend == "CPU":
+                if args.precision != "FP32":
+                    raise Exception("Invalid precision for CPU. Valid value is FP32")
+            if args.backend == "GPU":
+                if args.precision not in ["FP32","FP16"]:
+                    raise Exception("Invalid precision for GPU. Valid values FP32 and FP16")
+            if args.backend == "MYRIAD":
+                if args.precision != "FP16":
+                    raise Exception("Invalid precision for MYRIAD. Valid value is FP16")
+        if args.precision:
+            if args.precision not in ["FP32","FP16"]:
+                raise Exception("Invalid precision string. Valid values are FP32 and FP16")
+            if args.precision == "FP16":
+                if args.backend not in  ["GPU", "MYRIAD"]:
+                    raise Exception("Invalid backend for FP16 precision. Valid values are GPU and MYRIAD")
+            if args.precision == "FP32":
+                if args.backend not in ["CPU", "GPU"]:
+                    raise Exception("Invalid backend for FP32 precision. Valid values are CPU and GPU")
+        if not (args.backend and args.precision):
+            print("Please provide both backend and precision. If not default values are taken as CPU and FP32")
+
 
     # 2. Download and load the model
     model = models.resnet50(pretrained=True)
