@@ -70,8 +70,6 @@ def main():
                         help="Backend for inference")
     parser.add_argument('--precision', type=str,
                         help="Precision for prediction")
-    parser.add_argument('--export-onnx-graphs', action='store_true', default=False,
-                        help='export ONNX graphs to current directory')
     args = parser.parse_args()
  
     # parameters validation
