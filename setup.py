@@ -52,6 +52,7 @@ wheel_name_suffix = parse_arg_remove_string(sys.argv, "--wheel_name_suffix=")
 cuda_version = None
 rocm_version = None
 is_rocm = False
+is_openvino = False
 # The following arguments are mutually exclusive
 if wheel_name_suffix == "gpu":
     # TODO: how to support multiple CUDA versions?
@@ -61,6 +62,7 @@ elif parse_arg_remove_boolean(sys.argv, "--use_rocm"):
     package_name = "onnxruntime-rocm" if not nightly_build else "ort-rocm-nightly"
     rocm_version = parse_arg_remove_string(sys.argv, "--rocm_version=")
 elif parse_arg_remove_boolean(sys.argv, "--use_openvino"):
+    is_openvino = True
     package_name = "onnxruntime-openvino"
 elif parse_arg_remove_boolean(sys.argv, "--use_dnnl"):
     package_name = "onnxruntime-dnnl"
@@ -145,6 +147,17 @@ try:
                     f.write("except OSError:\n")
                     f.write("    import os\n")
                     f.write('    os.environ["ORT_TENSORRT_UNAVAILABLE"] = "1"\n')
+        
+        def _rewrite_ld_preload_openvino(self, to_preload):
+            with open('onnxruntime/capi/_ld_preload.py', 'a') as f:
+                if len(to_preload) > 0:
+                    f.write('from ctypes import CDLL, RTLD_GLOBAL\n')
+                    f.write('try:\n')
+                    for library in to_preload:
+                        f.write('    _{} = CDLL("{}", mode=RTLD_GLOBAL)\n'.format(library.split('.')[0], library))
+                    f.write('except OSError:\n')
+                    f.write('    import os\n')
+                    f.write('    os.environ["ORT_OPENVINO_UNAVAILABLE"] = "1"\n')
 
         def run(self):
             if is_manylinux:
@@ -166,6 +179,7 @@ try:
                 to_preload = []
                 to_preload_cuda = []
                 to_preload_tensorrt = []
+                to_preload_openvino = []
                 cuda_dependencies = []
                 args = ["patchelf", "--debug"]
                 for line in result.stdout.split("\n"):
@@ -176,7 +190,7 @@ try:
                 args.append(dest)
                 if len(args) > 3:
                     subprocess.run(args, check=True, stdout=subprocess.PIPE)
-
+                
                 dest = "onnxruntime/capi/libonnxruntime_providers_" + ("rocm.so" if is_rocm else "cuda.so")
                 if path.isfile(dest):
                     result = subprocess.run(
@@ -234,17 +248,61 @@ try:
                     if len(args) > 3:
                         subprocess.run(args, check=True, stdout=subprocess.PIPE)
 
+                dest = 'onnxruntime/capi/libonnxruntime_providers_openvino.so'
+                if path.isfile(dest):
+                    result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN/../openvino_libs', dest],
+                                             check=True, stdout=subprocess.PIPE, universal_newlines=True)
+                    result = subprocess.run(
+                        ["patchelf", "--print-needed", dest],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True,
+                    )
+
+                    #openvino_dependencies = ['libopenvino_c.so', 'libopenvino.so', 'libopenvino_onnx_frontend.so']
+                    #args = ['patchelf', '--debug']
+                    #for line in result.stdout.split('\n'):
+                    #    for dependency in (openvino_dependencies):
+                    #        if dependency in line:
+                    #            if dependency not in (to_preload):
+                    #                to_preload_openvino.append(line)
+                    #            args.extend(['--remove-needed', line])
+                    #args.append(dest)
+                    #if len(args) > 3:
+                    #    subprocess.run(args, check=True, stdout=subprocess.PIPE)
+                    
+                    
+                dest = 'onnxruntime/openvino_libs/libopenvino_intel_gpu_plugin.so'
+                if path.isfile(dest):
+                    result = subprocess.run(
+                        ["patchelf", "--print-needed", dest],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True,
+                    )
+
+                    ov_dependencies = ['libOpenCL.so.1']
+                    args = ['patchelf', '--debug']
+                    for line in result.stdout.split('\n'):
+                        for dependency in (ov_dependencies):
+                            if dependency in line:
+                                if dependency not in (to_preload):
+                                    to_preload_openvino.append(line)
+                                args.extend(['--remove-needed', line])
+                    args.append(dest)
+                    if len(args) > 3:
+                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
+
                 self._rewrite_ld_preload(to_preload)
                 self._rewrite_ld_preload_cuda(to_preload_cuda)
                 self._rewrite_ld_preload_tensorrt(to_preload_tensorrt)
+                self._rewrite_ld_preload_openvino(to_preload_openvino)
             _bdist_wheel.run(self)
             if is_manylinux and not disable_auditwheel_repair:
                 file = glob(path.join(self.dist_dir, "*linux*.whl"))[0]
                 logger.info("repairing %s for manylinux1", file)
                 try:
-                    subprocess.run(
-                        ["auditwheel", "repair", "-w", self.dist_dir, file], check=True, stdout=subprocess.PIPE
-                    )
+                    subprocess.run(["auditwheel", "repair", "-w", self.dist_dir, file], check=True, stdout=subprocess.PIPE)
                 finally:
                     logger.info("removing %s", file)
                     remove(file)
@@ -256,6 +314,7 @@ except ImportError as error:
 
 providers_cuda_or_rocm = "libonnxruntime_providers_" + ("rocm.so" if is_rocm else "cuda.so")
 providers_tensorrt_or_migraphx = "libonnxruntime_providers_" + ("migraphx.so" if is_rocm else "tensorrt.so")
+providers_openvino = "libonnxruntime_providers_openvino.so"
 # Additional binaries
 if platform.system() == "Linux":
     libs = [
@@ -304,6 +363,8 @@ else:
         libs.extend(["onnxruntime_pywrapper.dll"])
 
 if is_manylinux:
+    if(is_openvino):
+    	dl_libs.append(providers_openvino)
     data = ["capi/libonnxruntime_pywrapper.so"] if nightly_build else []
     data += [path.join("capi", x) for x in dl_libs if path.isfile(path.join("onnxruntime", "capi", x))]
     ext_modules = [
@@ -312,6 +373,26 @@ if is_manylinux:
             ["onnxruntime/capi/onnxruntime_pybind11_state_manylinux1.so"],
         ),
     ]
+
+    ov_libs =[
+               'libopenvino_c.so',
+               'libopenvino.so',
+               'libopenvino_onnx_frontend.so', 
+               'libopenvino_intel_cpu_plugin.so',
+               'libopenvino_intel_gpu_plugin.so',
+               'libopenvino_intel_myriad_plugin.so',
+               'libtbb.so.2',
+               'libtbbmalloc.so.2',
+             ]
+    for x in ov_libs:
+             y = 'onnxruntime/openvino_libs/' + x
+             result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN', y],
+                                     check=True, stdout=subprocess.PIPE, universal_newlines=True)
+    ov_libs.append('libtbb.so')
+    ov_libs.append('libtbbmalloc.so')
+    ov_libs.append('plugins.xml')
+    data += [path.join("openvino_libs", x) for x in ov_libs if path.isfile(path.join("onnxruntime", "openvino_libs", x))]
+  
 else:
     data = [path.join("capi", x) for x in libs if path.isfile(path.join("onnxruntime", "capi", x))]
     ext_modules = []
@@ -454,6 +535,9 @@ if package_name == "onnxruntime-nuphar":
     packages += ["onnxruntime.nuphar"]
     extra += [path.join("nuphar", "NUPHAR_CACHE_VERSION")]
 
+if package_name == "onnxruntime-nuphar":
+    packages += (["onnxruntime.openvino_libs"])
+
 if package_name == "onnxruntime-tvm":
     packages += ["onnxruntime.providers.tvm"]
 
@@ -549,7 +633,6 @@ if not path.exists(requirements_path):
     raise FileNotFoundError("Unable to find " + requirements_file)
 with open(requirements_path) as f:
     install_requires = f.read().splitlines()
-
 
 if enable_training:
 
