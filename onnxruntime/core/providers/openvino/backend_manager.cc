@@ -81,10 +81,18 @@ BackendManager::BackendManager(const Node* fused_node, const logging::Logger& lo
     concrete_backend_ = BackendFactory::MakeBackend(*model_copy, GetGlobalContext(), subgraph_context_);
     subgraph_context_.has_dynamic_input_shape = false;
 
-  } else if (ModelHasSymbolicInputDims(fused_node)) {
+  } else if (ModelHasSymbolicInputDims(fused_node) && 
+      GetGlobalContext().device_type.find("CPU") != std::string::npos) {
+    LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims and device_type is CPU. Starting backend initialization";
+    subgraph_context_.has_dynamic_input_shape = true;
+    concrete_backend_ = BackendFactory::MakeBackend(*model_proto_, GetGlobalContext(), subgraph_context_);
+
+  } else if (ModelHasSymbolicInputDims(fused_node) && 
+      GetGlobalContext().device_type.find("CPU") == std::string::npos) {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims. Defering backend initialization";
     subgraph_context_.has_dynamic_input_shape = true;
-  } else {
+  }
+   else {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has concreate input dims. Initializing backend for graph " << subgraph_context_.subgraph_name;
 
     subgraph_context_.has_dynamic_input_shape = false;
@@ -106,6 +114,7 @@ bool BackendManager::ModelHasBatchedInputs(const ONNX_NAMESPACE::ModelProto& mod
     }
 
     if (shape.dim(0).value_case() == shape.dim(0).kDimValue) {
+      //shape.dim(0).dim_value()
       has_batched_inputs = false;
       break;
     }
@@ -236,7 +245,8 @@ BackendManager::ReWriteBatchDimWithOne(const ONNX_NAMESPACE::ModelProto& model_p
 }
 
 void BackendManager::Compute(Ort::CustomOpApi api, OrtKernelContext* context) {
-  if (subgraph_context_.has_dynamic_input_shape) {
+  if (subgraph_context_.has_dynamic_input_shape &&
+      GetGlobalContext().device_type.find("CPU") == std::string::npos) {
     std::vector<std::vector<int64_t>> tensor_shapes = GetInputTensorShapes(api, context);
     auto key = MakeMapKeyString(tensor_shapes, GetGlobalContext().device_type);
 
