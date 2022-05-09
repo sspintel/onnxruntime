@@ -482,6 +482,14 @@ class GraphExecutionManager(GraphExecutionInterface):
                 exported_model, self._enable_custom_autograd_function, self._debug_options.logging.log_level
             )
         else:
+            set_dynamic_axes = True
+            try:
+                avg_pool_module = self._original_module.get_submodule("avgpool")
+                output_size = list(avg_pool_module.output_size)
+                if output_size != [1] * len(output_size):
+                    set_dynamic_axes = False
+            except Exception:
+                pass
             try:
                 with torch.no_grad():
                     required_export_kwargs = {
@@ -490,12 +498,13 @@ class GraphExecutionManager(GraphExecutionInterface):
                         "opset_version": ortmodule.ONNX_OPSET_VERSION,
                         "do_constant_folding": True,
                         "training": self._export_mode,
-                        "dynamic_axes": self._input_info.dynamic_axes,
                         "verbose": self._debug_options.logging.log_level < LogLevel.WARNING,
                         "operator_export_type": OperatorExportTypes.ONNX_ATEN_FALLBACK,
                         "export_params": True,
                         "keep_initializers_as_inputs": False,
                     }
+                    if set_dynamic_axes:
+                        required_export_kwargs["dynamic_axes"] = self._input_info.dynamic_axes
 
                     invalid_args = self._export_extra_kwargs.keys() & required_export_kwargs.keys()
                     assert (
