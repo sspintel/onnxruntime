@@ -196,28 +196,28 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
         }
       }
       else if(shape.dim_size() ==2){
-        auto h_value = 0;
-        auto w_value = 0;
+        auto dynamic_H_dim_value = false;
+        auto dynamic_W_dim_value = false;
         ov::Shape static_shape={0,0};
         if(shape.dim(0).dim_value()!=0){
           static_shape[0] = shape.dim(0).dim_value();
         }
         else{
-          h_value = 1;
+          dynamic_H_dim_value = true;
         }
         if(shape.dim(1).dim_value()!=0){
           static_shape[1] = shape.dim(1).dim_value();
         }
         else{
-          w_value = 1;
+          dynamic_W_dim_value = true;
         }
-        if(h_value ==1 && w_value ==1){
+        if(dynamic_H_dim_value == true && dynamic_W_dim_value == true){
           cnn_network->reshape({{ov::Dimension(),ov::Dimension()}});
         }
-        else if(h_value ==0 && w_value ==1){
+        else if(dynamic_H_dim_value == false && dynamic_W_dim_value == true){
           cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),ov::Dimension()}});
         }
-        else if(h_value ==1 && w_value ==0){
+        else if(dynamic_H_dim_value == true && dynamic_W_dim_value == false){
           cnn_network->reshape({{ov::Dimension(),static_cast<unsigned int>(static_shape[1])}});
         }
         else{
@@ -225,8 +225,8 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
         }
       }
       else if(shape.dim_size() ==3){
-        auto h_value = 0;
-        auto w_value = 0;
+        auto dynamic_H_dim_value = false;
+        auto dynamic_W_dim_value = false;
         ov::Shape static_shape={0,0,0};
         if(shape.dim(0).dim_value()!=0){
           static_shape[0] = shape.dim(0).dim_value();
@@ -238,21 +238,21 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
           static_shape[1] = shape.dim(1).dim_value();
         }
         else{
-          h_value = 1;
+          dynamic_H_dim_value = true;
         }
         if(shape.dim(2).dim_value()!=0){
           static_shape[2] = shape.dim(2).dim_value();
         }
         else{
-          w_value = 1;
+          dynamic_W_dim_value = true;
         }
-        if(h_value ==0 && w_value ==0){
+        if(dynamic_H_dim_value == false && dynamic_W_dim_value == false){
           cnn_network->reshape(static_shape);
         }
-        else if(h_value == 1 && w_value ==0){
+        else if(dynamic_H_dim_value == true && dynamic_W_dim_value == false){
           cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),ov::Dimension(),static_cast<unsigned int>(static_shape[2])}});
         }
-        else if(h_value == 0 && w_value ==1){
+        else if(dynamic_H_dim_value == false && dynamic_W_dim_value == true){
           cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),ov::Dimension()}});
         }
         else{
@@ -260,8 +260,8 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
         }
       }
       else{
-        auto h_value = 0;
-        auto w_value = 0;
+        auto dynamic_H_dim_value = false;
+        auto dynamic_W_dim_value = false;
         ov::Shape static_shape={0,0,0,0};
         if(shape.dim(0).dim_value()!=0){
           static_shape[0] = shape.dim(0).dim_value();
@@ -276,21 +276,21 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
           static_shape[2] = shape.dim(2).dim_value();
         }
         else{
-          h_value = 1;
+          dynamic_H_dim_value = true;
         }
         if(shape.dim(3).dim_value()!=0){
           static_shape[3] = shape.dim(3).dim_value();
         }
         else{
-          w_value = 1;
+          dynamic_W_dim_value = true;
         }
-        if(h_value ==0 && w_value ==0){
+        if(dynamic_H_dim_value == false && dynamic_W_dim_value == false){
           cnn_network->reshape(static_shape);
         }
-        else if(h_value == 1 && w_value ==0){
+        else if(dynamic_H_dim_value == true && dynamic_W_dim_value == false){
           cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),ov::Dimension(),static_cast<unsigned int>(static_shape[3])}});
         }
-        else if(h_value == 0 && w_value ==1){
+        else if(dynamic_H_dim_value == false && dynamic_W_dim_value == true){
           cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),static_cast<unsigned int>(static_shape[2]),ov::Dimension()}});
         }
         else{
