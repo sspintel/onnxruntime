@@ -261,8 +261,6 @@ try:
                     for line in result.stdout.split('\n'):
                         for dependency in (ov_dependencies):
                             if dependency in line:
-                                if dependency not in (to_preload):
-                                    to_preload_openvino.append(line)
                                 args.extend(['--remove-needed', line])
                     args.append(dest)
                     if len(args) > 3:
