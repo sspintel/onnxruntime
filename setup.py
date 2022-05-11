@@ -148,17 +148,6 @@ try:
                     f.write("    import os\n")
                     f.write('    os.environ["ORT_TENSORRT_UNAVAILABLE"] = "1"\n')
         
-        def _rewrite_ld_preload_openvino(self, to_preload):
-            with open('onnxruntime/capi/_ld_preload.py', 'a') as f:
-                if len(to_preload) > 0:
-                    f.write('from ctypes import CDLL, RTLD_GLOBAL\n')
-                    f.write('try:\n')
-                    for library in to_preload:
-                        f.write('    _{} = CDLL("{}", mode=RTLD_GLOBAL)\n'.format(library.split('.')[0], library))
-                    f.write('except OSError:\n')
-                    f.write('    import os\n')
-                    f.write('    os.environ["ORT_OPENVINO_UNAVAILABLE"] = "1"\n')
-
         def run(self):
             if is_manylinux:
                 source = "onnxruntime/capi/onnxruntime_pybind11_state.so"
@@ -179,7 +168,6 @@ try:
                 to_preload = []
                 to_preload_cuda = []
                 to_preload_tensorrt = []
-                to_preload_openvino = []
                 cuda_dependencies = []
                 args = ["patchelf", "--debug"]
                 for line in result.stdout.split("\n"):
@@ -259,19 +247,6 @@ try:
                         universal_newlines=True,
                     )
 
-                    #openvino_dependencies = ['libopenvino_c.so', 'libopenvino.so', 'libopenvino_onnx_frontend.so']
-                    #args = ['patchelf', '--debug']
-                    #for line in result.stdout.split('\n'):
-                    #    for dependency in (openvino_dependencies):
-                    #        if dependency in line:
-                    #            if dependency not in (to_preload):
-                    #                to_preload_openvino.append(line)
-                    #            args.extend(['--remove-needed', line])
-                    #args.append(dest)
-                    #if len(args) > 3:
-                    #    subprocess.run(args, check=True, stdout=subprocess.PIPE)
-                    
-                    
                 dest = 'onnxruntime/openvino_libs/libopenvino_intel_gpu_plugin.so'
                 if path.isfile(dest):
                     result = subprocess.run(
@@ -296,7 +271,6 @@ try:
                 self._rewrite_ld_preload(to_preload)
                 self._rewrite_ld_preload_cuda(to_preload_cuda)
                 self._rewrite_ld_preload_tensorrt(to_preload_tensorrt)
-                self._rewrite_ld_preload_openvino(to_preload_openvino)
             _bdist_wheel.run(self)
             if is_manylinux and not disable_auditwheel_repair:
                 file = glob(path.join(self.dist_dir, "*linux*.whl"))[0]
@@ -391,6 +365,7 @@ if is_manylinux:
     ov_libs.append('libtbb.so')
     ov_libs.append('libtbbmalloc.so')
     ov_libs.append('plugins.xml')
+    ov_libs.append('usb-ma2x8x.mvcmd')
     data += [path.join("openvino_libs", x) for x in ov_libs if path.isfile(path.join("onnxruntime", "openvino_libs", x))]
   
 else:
@@ -535,7 +510,7 @@ if package_name == "onnxruntime-nuphar":
     packages += ["onnxruntime.nuphar"]
     extra += [path.join("nuphar", "NUPHAR_CACHE_VERSION")]
 
-if package_name == "onnxruntime-nuphar":
+if is_manylinux and package_name == "onnxruntime-openvino":
     packages += (["onnxruntime.openvino_libs"])
 
 if package_name == "onnxruntime-tvm":

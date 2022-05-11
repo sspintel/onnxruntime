@@ -337,7 +337,7 @@ if (onnxruntime_USE_CUDA)
     "${ONNXRUNTIME_ROOT}/core/providers/cuda/cuda_pch.h"
     "${ONNXRUNTIME_ROOT}/core/providers/cuda/cuda_pch.cc"
   )
-  
+
   # The shared_library files are in a separate list since they use precompiled headers, and the above files have them disabled.
   file(GLOB_RECURSE onnxruntime_providers_cuda_shared_srcs CONFIGURE_DEPENDS
     "${ONNXRUNTIME_ROOT}/core/providers/shared_library/*.h"
@@ -749,13 +749,17 @@ if (onnxruntime_USE_OPENVINO)
   # Header paths
   find_package(InferenceEngine REQUIRED)
   find_package(ngraph REQUIRED)
- 
+
   if (OPENVINO_2022_1)
-  #find_package(OpenVINO REQUIRED COMPONENTS Runtime ONNX)
+  if (DEFINED ENV{OPENVINO_MANYLINUX})
   set(OV_LIBS_PATH ${ONNXRUNTIME_ROOT}/core/providers/openvino/scripts)
   list (OV_20_LIBS ${OV_LIBS_PATH}/libopenvino_c.so ${OV_LIBS_PATH}/libopenvino.so ${OV_LIBS_PATH}/libopenvino_onnx_frontend.so)
+  else()
+  find_package(OpenVINO REQUIRED COMPONENTS Runtime ONNX)
+  list (OV_20_LIBS openvino::frontend::onnx openvino::runtime)
   endif()
- 
+  endif()
+
   if (WIN32)
     unset(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO)
   endif()
@@ -1455,4 +1459,3 @@ if (NOT onnxruntime_BUILD_SHARED_LIB)
           RUNTIME   DESTINATION ${CMAKE_INSTALL_BINDIR}
           FRAMEWORK DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
-
