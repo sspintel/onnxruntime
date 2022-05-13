@@ -51,6 +51,7 @@ wheel_name_suffix = parse_arg_remove_string(sys.argv, '--wheel_name_suffix=')
 cuda_version = None
 rocm_version = None
 is_rocm = False
+is_openvino = False
 # The following arguments are mutually exclusive
 if wheel_name_suffix == 'gpu':
     # TODO: how to support multiple CUDA versions?
@@ -60,6 +61,7 @@ elif parse_arg_remove_boolean(sys.argv, '--use_rocm'):
     package_name = 'onnxruntime-rocm' if not nightly_build else 'ort-rocm-nightly'
     rocm_version = parse_arg_remove_string(sys.argv, '--rocm_version=')
 elif parse_arg_remove_boolean(sys.argv, '--use_openvino'):
+    is_openvino = True
     package_name = 'onnxruntime-openvino'
 elif parse_arg_remove_boolean(sys.argv, '--use_dnnl'):
     package_name = 'onnxruntime-dnnl'
@@ -204,6 +206,46 @@ try:
                     if len(args) > 3:
                         subprocess.run(args, check=True, stdout=subprocess.PIPE)
 
+                dest = 'onnxruntime/capi/libonnxruntime_providers_openvino.so'
+                if path.isfile(dest):
+                    result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN/../openvino_libs', dest],
+                                             check=True, stdout=subprocess.PIPE, universal_newlines=True)
+                    result = subprocess.run(
+                        ["patchelf", "--print-needed", dest],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True,
+                    )
+
+                    ov_dependency = ['libopenvino.so', 'libopenvino_c.so', 'libopenvino_onnx_frontend.so']
+                    args = ['patchelf', '--debug']
+                    for line in result.stdout.split('\n'):
+                        for dependency in (ov_dependency):
+                            if dependency in line:
+                                args.extend(['--remove-needed', line])
+                    args.append(dest)
+                    if len(args) > 3:
+                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
+
+                dest = 'onnxruntime/openvino_libs/libopenvino_intel_gpu_plugin.so'
+                if path.isfile(dest):
+                    result = subprocess.run(
+                        ["patchelf", "--print-needed", dest],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        universal_newlines=True,
+                    )
+
+                    ov_dependencies = ['libOpenCL.so.1']
+                    args = ['patchelf', '--debug']
+                    for line in result.stdout.split('\n'):
+                        for dependency in (ov_dependencies):
+                            if dependency in line:
+                                args.extend(['--remove-needed', line])
+                    args.append(dest)
+                    if len(args) > 3:
+                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
+
                 self._rewrite_ld_preload(to_preload)
                 self._rewrite_ld_preload_cuda(to_preload_cuda)
                 self._rewrite_ld_preload_tensorrt(to_preload_tensorrt)
@@ -225,6 +267,7 @@ except ImportError as error:
 
 providers_cuda_or_rocm = 'libonnxruntime_providers_' + ('rocm.so' if is_rocm else 'cuda.so')
 providers_tensorrt_or_migraphx = 'libonnxruntime_providers_' + ('migraphx.so' if is_rocm else 'tensorrt.so')
+providers_openvino = "libonnxruntime_providers_openvino.so"
 # Additional binaries
 if platform.system() == 'Linux':
     libs = ['onnxruntime_pybind11_state.so', 'libdnnl.so.2', 'libmklml_intel.so', 'libmklml_gnu.so', 'libiomp5.so',
@@ -267,6 +310,8 @@ else:
         libs.extend(['onnxruntime_pywrapper.dll'])
 
 if is_manylinux:
+    if(is_openvino):
+      dl_libs.append(providers_openvino)
     data = ['capi/libonnxruntime_pywrapper.so'] if nightly_build else []
     data += [path.join('capi', x) for x in dl_libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = [
@@ -275,6 +320,27 @@ if is_manylinux:
             ['onnxruntime/capi/onnxruntime_pybind11_state_manylinux1.so'],
         ),
     ]
+
+    if(is_openvino):
+      ov_libs =[
+               'libopenvino_c.so',
+               'libopenvino.so',
+               'libopenvino_onnx_frontend.so',
+               'libopenvino_intel_cpu_plugin.so',
+               'libopenvino_intel_gpu_plugin.so',
+               'libopenvino_intel_myriad_plugin.so',
+               'libtbb.so.2',
+               'libtbbmalloc.so.2',
+             ]
+      for x in ov_libs:
+             y = 'onnxruntime/openvino_libs/' + x
+             result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN', y],
+                                     check=True, stdout=subprocess.PIPE, universal_newlines=True)
+      ov_libs.append('libtbb.so')
+      ov_libs.append('libtbbmalloc.so')
+      ov_libs.append('plugins.xml')
+      ov_libs.append('usb-ma2x8x.mvcmd')
+      data += [path.join("openvino_libs", x) for x in ov_libs if path.isfile(path.join("onnxruntime", "openvino_libs", x))]
 else:
     data = [path.join('capi', x) for x in libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = []
@@ -404,6 +470,9 @@ if package_name == 'onnxruntime-nuphar':
 
 if package_name == 'onnxruntime-tvm':
     packages += ['onnxruntime.providers.tvm']
+
+if is_manylinux and package_name == "onnxruntime-openvino":
+    packages += (["onnxruntime.openvino_libs"])
 
 package_data["onnxruntime"] = data + examples + extra
 
