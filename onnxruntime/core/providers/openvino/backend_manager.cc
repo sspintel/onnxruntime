@@ -83,7 +83,14 @@ BackendManager::BackendManager(const onnxruntime::Node& fused_node,
     concrete_backend_ = BackendFactory::MakeBackend(*model_copy, GetGlobalContext(), subgraph_context_);
     subgraph_context_.has_dynamic_input_shape = false;
 
-  } else if (ModelHasSymbolicInputDims(subgraph)) {
+  } else if (ModelHasSymbolicInputDims(subgraph) && 
+      GetGlobalContext().device_type.find("CPU") != std::string::npos) {
+    LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims and device_type is CPU. Starting backend initialization";
+    subgraph_context_.has_dynamic_input_shape = true;
+    concrete_backend_ = BackendFactory::MakeBackend(*model_proto_, GetGlobalContext(), subgraph_context_);
+
+  } else if (ModelHasSymbolicInputDims(subgraph) && 
+      GetGlobalContext().device_type.find("GPU") != std::string::npos) {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims. Defering backend initialization";
     subgraph_context_.has_dynamic_input_shape = true;
   } else {
@@ -236,7 +243,8 @@ BackendManager::ReWriteBatchDimWithOne(const ONNX_NAMESPACE::ModelProto& model_p
 }
 
 void BackendManager::Compute(Ort::CustomOpApi api, OrtKernelContext* context) {
-  if (subgraph_context_.has_dynamic_input_shape) {
+  if (subgraph_context_.has_dynamic_input_shape &&
+      GetGlobalContext().device_type.find("CPU") == std::string::npos) {
     std::vector<std::vector<int64_t>> tensor_shapes = GetInputTensorShapes(api, context);
     auto key = MakeMapKeyString(tensor_shapes, GetGlobalContext().device_type);
 
