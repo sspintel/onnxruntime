@@ -1,7 +1,7 @@
 OpenVINO™ integration with OnnxRuntime
 ======================================
 
--  `OpenVINO™ integration with OnnxRuntime <https://github.com/intel/onnxruntime/>`_.  is a product designed for OnnxRuntime* developers who want to get started with `OnnxRuntime (https://l) in their inferencing applications. This product delivers [OpenVINO™](https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html) inline optimizations which enhance inferencing performance with minimal code modifications. **OpenVINO™ integration with OnnxRuntime** accelerates inference across many [AI models](https://github.com/onnx/models) on a variety of Intel<sup>®</sup> silicon such as:
+-  `OpenVINO™ integration with OnnxRuntime <https://github.com/intel/onnxruntime/>`_. is a product designed for OnnxRuntime developers who want to get started with OnnxRuntime in their inferencing applications. This product delivers  `OpenVINO™ <https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html>`_. inline optimizations which enhance inferencing performance with minimal code modifications. **OpenVINO™ integration with OnnxRuntime** accelerates inference across many  `AI models <https://github.com/onnx/models>`_. on a variety of Intel silicon such as:
 - Intel CPUs
 - Intel integrated GPUs
 - Intel Movidius™ Vision Processing Units - referred to as VPU
@@ -27,27 +27,28 @@ Please Note for VADM Please use Docker installation / Build from Source for Linu
 
         pip3 install openvino-onnxruntime==1.11.0
 
-For installation instructions on Windows please refer to [**OpenVINO™ integration with OnnxRuntime** for Windows ](https://github.com/intel/onnxruntime/releases/tag/v4.0)
+For installation instructions on Windows please refer to  `OpenVINO™ integration with OnnxRuntime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
 
-For more details on build and installation please refer to [BUILD.md](https://onnxruntime.ai/docs/build/eps.html#openvino)
+For more details on build and installation please refer to `Build.md <https://onnxruntime.ai/docs/build/eps.html#openvino>`_.
 
 Usage
 ^^^^^
 
 By default, Intel CPU is used to run inference. However, you can change the default option to either Intel integrated GPU or Intel VPU for AI inferencing. Invoke the following function to change the hardware on which inferencing is done.
 
-For more API calls and environment variables, see [USAGE.md](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#configuration-options).
+For more API calls and environment variables, see  `Usage.md <https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#configuration-options>`_.
 
 Examples
 ^^^^^^^^
 
-To see what you can do with **OpenVINO™ integration with OnnxRuntime**, explore the demos located in the [examples](https://github.com/microsoft/onnxruntime-inference-examples) repository.
+To see what you can do with **OpenVINO™ integration with OnnxRuntime**, explore the demos located in the  `Examples <https://github.com/microsoft/onnxruntime-inference-examples>`_.
 
 Docker Support
 ^^^^^^^^^^^^^^
 
 The latest OpenVINO EP docker image can be downloaded from dockerhub. 
-For more details see [docker readme](https://hub.docker.com/r/openvino/onnxruntime_ep_ubuntu18).
+For more details see  `Docker ReadMe <https://hub.docker.com/r/openvino/onnxruntime_ep_ubuntu18>`_.
+
 
 Prebuilt Images
 ^^^^^^^^^^^^^^^^
@@ -64,17 +65,15 @@ and release your contribution under these terms.
 Support
 ^^^^^^^^
 
-Please submit your questions, feature requests and bug reports via [**GitHub issues**](https://github.com/intel/onnxruntime/issues).
+Please submit your questions, feature requests and bug reports via   `GitHub Issues <https://github.com/intel/onnxruntime/issues>`_.
 
 How to Contribute
 ^^^^^^^^^^^^^^^^^^
 
 We welcome community contributions to **OpenVINO™ integration with OnnxRuntime**. If you have an idea for improvement:
 
-* Share your proposal via [GitHub issues](https://github.com/intel/onnxruntime/issues).
-* Submit a [pull request](https://github.com/intel/onnxruntime/pulls).
+* Share your proposal via  `GitHub Issues <https://github.com/intel/onnxruntime/issues>`_.
+* Submit a  `Pull Request <https://github.com/intel/onnxruntime/pulls>`_.
 
-We will review your contribution as soon as possible. If any additional fixes or modifications are necessary, we will guide you and provide feedback. Before you make your contribution, make sure you can build **OpenVINO™ integration with OnnxRuntime** and run all the examples with your fix/patch. If you want to introduce a large feature, create test cases for your feature. Upon the verification of your pull request, we will merge it to the repository provided that the pull request has met the above mentioned requirements and proved acceptable.
 
----
-\* Other names and brands may be claimed as the property of others.
+
