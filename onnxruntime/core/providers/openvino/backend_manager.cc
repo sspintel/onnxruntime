@@ -83,14 +83,18 @@ BackendManager::BackendManager(const onnxruntime::Node& fused_node,
     concrete_backend_ = BackendFactory::MakeBackend(*model_copy, GetGlobalContext(), subgraph_context_);
     subgraph_context_.has_dynamic_input_shape = false;
 
-  } else if (ModelHasSymbolicInputDims(subgraph) &&
+  }
+  else if (ModelHasSymbolicInputDims(subgraph) &&
       GetGlobalContext().device_type.find("CPU") != std::string::npos) {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims and "
                        << "device_type is CPU. Starting backend initialization";
     subgraph_context_.has_dynamic_input_shape = true;
-    concrete_backend_ = BackendFactory::MakeBackend(*model_proto_, GetGlobalContext(), subgraph_context_);
-
-  } else if (ModelHasSymbolicInputDims(subgraph) &&
+    #if (defined OV_API_20)
+      concrete_backend_ = BackendFactory::MakeBackend(*model_proto_, GetGlobalContext(), subgraph_context_);
+    #endif
+  } 
+  
+  else if (ModelHasSymbolicInputDims(subgraph) &&
       GetGlobalContext().device_type.find("GPU") != std::string::npos) {
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Model has symbolic input dims. Defering backend initialization";
     subgraph_context_.has_dynamic_input_shape = true;
@@ -244,37 +248,40 @@ BackendManager::ReWriteBatchDimWithOne(const ONNX_NAMESPACE::ModelProto& model_p
 }
 
 void BackendManager::Compute(Ort::CustomOpApi api, OrtKernelContext* context) {
-  if (subgraph_context_.has_dynamic_input_shape &&
-      GetGlobalContext().device_type.find("CPU") == std::string::npos) {
-    std::vector<std::vector<int64_t>> tensor_shapes = GetInputTensorShapes(api, context);
-    auto key = MakeMapKeyString(tensor_shapes, GetGlobalContext().device_type);
+  #if (defined OPENVINO_2021_2) || (defined OPENVINO_2021_3) || (defined OPENVINO_2021_4)
+    if (subgraph_context_.has_dynamic_input_shape) {
+      std::vector<std::vector<int64_t>> tensor_shapes = GetInputTensorShapes(api, context);
+      auto key = MakeMapKeyString(tensor_shapes, GetGlobalContext().device_type);
 
-    if (GetGlobalContext().device_type.find("MYRIAD") != std::string::npos) {
-      for (size_t i = 0; i < subgraph_context_.input_indexes.size(); i++) {
-        if (tensor_shapes[i].size() != 4)
-          subgraph_context_.set_vpu_config = true;
+      if (GetGlobalContext().device_type.find("MYRIAD") != std::string::npos) {
+        for (size_t i = 0; i < subgraph_context_.input_indexes.size(); i++) {
+          if (tensor_shapes[i].size() != 4)
+            subgraph_context_.set_vpu_config = true;
+        }
       }
-    }
 
-    std::shared_ptr<IBackend> dynamic_backend;
-    auto search = backend_map_.find(key);
-    if (search == backend_map_.end()) {
-      LOGS_DEFAULT(INFO) << "[OpenVINO-EP] "
-                         << "Creating concrete backend for key: " << key;
-      LOGS_DEFAULT(INFO) << "[OpenVINO-EP] "
-                         << "Backend created for graph " << subgraph_context_.subgraph_name;
-      auto modelproto_with_concrete_shapes = ReWriteInputShapeInfo(*model_proto_, tensor_shapes);
-      dynamic_backend = BackendFactory::MakeBackend(*modelproto_with_concrete_shapes,
-                                                    GetGlobalContext(), subgraph_context_);
-      backend_map_.insert({key, dynamic_backend});
+      std::shared_ptr<IBackend> dynamic_backend;
+      auto search = backend_map_.find(key);
+      if (search == backend_map_.end()) {
+        LOGS_DEFAULT(INFO) << "[OpenVINO-EP] "
+                          << "Creating concrete backend for key: " << key;
+        LOGS_DEFAULT(INFO) << "[OpenVINO-EP] "
+                          << "Backend created for graph " << subgraph_context_.subgraph_name;
+        auto modelproto_with_concrete_shapes = ReWriteInputShapeInfo(*model_proto_, tensor_shapes);
+        dynamic_backend = BackendFactory::MakeBackend(*modelproto_with_concrete_shapes,
+                                                      GetGlobalContext(), subgraph_context_);
+        backend_map_.insert({key, dynamic_backend});
+      } else {
+        dynamic_backend = search->second;
+      }
+
+      dynamic_backend->Infer(api, context);
     } else {
-      dynamic_backend = search->second;
+      concrete_backend_->Infer(api, context);
     }
-
-    dynamic_backend->Infer(api, context);
-  } else {
-    concrete_backend_->Infer(api, context);
-  }
+  #else
+      concrete_backend_->Infer(api, context);
+  #endif
 }
 
 void BackendManager::ShutdownBackendManager() {
