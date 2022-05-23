@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------
 
 from setuptools import setup, Extension
+from setuptools.command.install import install as InstallCommandBase
 from distutils import log as logger
 from distutils.command.build_ext import build_ext as _build_ext
 from glob import glob, iglob
@@ -13,6 +14,8 @@ import platform
 import subprocess
 import sys
 import datetime
+from wheel.vendored.packaging.tags import sys_tags
+import os
 
 from pathlib import Path
 nightly_build = False
@@ -112,11 +115,25 @@ class build_ext(_build_ext):
 try:
     from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
-    class bdist_wheel(_bdist_wheel):
+    class BinaryBdistWheel(_bdist_wheel):
+        def get_tag(self):
+          _, _, plat = _bdist_wheel.get_tag(self)
+          if platform.system() == 'Linux':
+            # Get the right platform tag by querying the linker version
+            glibc_major, glibc_minor = os.popen("ldd --version | head -1").read().split()[-1].split(".")
+            # OVTF is built against GLIBC 2.17 with ABI-0 for compatibility with TensorFlow wheels
+            # See https://github.com/mayeut/pep600_compliance/blob/master/pep600_compliance/tools/manylinux-policy.json
+            if glibc_major == "2" and glibc_minor == "17":
+                plat = 'manylinux_2_17_x86_64.manylinux2014_x86_64'
+            else: # For manylinux2014 and above, no alias is required
+                plat = 'manylinux_%s_%s_x86_64'%(glibc_major, glibc_minor)
+          tags = next(sys_tags())
+          return (tags.interpreter, tags.abi, plat)
+
         def finalize_options(self):
             _bdist_wheel.finalize_options(self)
             if not is_manylinux:
-                self.root_is_pure = False
+              self.root_is_pure = False
 
         def _rewrite_ld_preload(self, to_preload):
             with open('onnxruntime/capi/_ld_preload.py', 'a') as f:
@@ -208,49 +225,14 @@ try:
 
                 dest = 'onnxruntime/capi/libonnxruntime_providers_openvino.so'
                 if path.isfile(dest):
-                    result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN/../openvino_libs', dest],
+                    result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN', dest, '--force-rpath'],
                                              check=True, stdout=subprocess.PIPE, universal_newlines=True)
-                    result = subprocess.run(
-                        ["patchelf", "--print-needed", dest],
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        universal_newlines=True,
-                    )
-
-                    ov_dependency = ['libopenvino.so', 'libopenvino_c.so', 'libopenvino_onnx_frontend.so']
-                    args = ['patchelf', '--debug']
-                    for line in result.stdout.split('\n'):
-                        for dependency in (ov_dependency):
-                            if dependency in line:
-                                args.extend(['--remove-needed', line])
-                    args.append(dest)
-                    if len(args) > 3:
-                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
-
-                dest = 'onnxruntime/openvino_libs/libopenvino_intel_gpu_plugin.so'
-                if path.isfile(dest):
-                    result = subprocess.run(
-                        ["patchelf", "--print-needed", dest],
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        universal_newlines=True,
-                    )
-
-                    ov_dependencies = ['libOpenCL.so.1']
-                    args = ['patchelf', '--debug']
-                    for line in result.stdout.split('\n'):
-                        for dependency in (ov_dependencies):
-                            if dependency in line:
-                                args.extend(['--remove-needed', line])
-                    args.append(dest)
-                    if len(args) > 3:
-                        subprocess.run(args, check=True, stdout=subprocess.PIPE)
 
                 self._rewrite_ld_preload(to_preload)
                 self._rewrite_ld_preload_cuda(to_preload_cuda)
                 self._rewrite_ld_preload_tensorrt(to_preload_tensorrt)
             _bdist_wheel.run(self)
-            if is_manylinux and not disable_auditwheel_repair:
+            if is_manylinux and not disable_auditwheel_repair and not is_openvino:
                 file = glob(path.join(self.dist_dir, '*linux*.whl'))[0]
                 logger.info('repairing %s for manylinux1', file)
                 try:
@@ -259,11 +241,18 @@ try:
                 finally:
                     logger.info('removing %s', file)
                     remove(file)
+   
+    class InstallCommand(InstallCommandBase):
+
+      def finalize_options(self):
+        ret = InstallCommandBase.finalize_options(self)
+        self.install_lib = self.install_platlib
+        return ret
 
 except ImportError as error:
     print("Error importing dependencies:")
     print(error)
-    bdist_wheel = None
+    BinaryBdistWheel = None
 
 providers_cuda_or_rocm = 'libonnxruntime_providers_' + ('rocm.so' if is_rocm else 'cuda.so')
 providers_tensorrt_or_migraphx = 'libonnxruntime_providers_' + ('migraphx.so' if is_rocm else 'tensorrt.so')
@@ -311,7 +300,26 @@ else:
 
 if is_manylinux:
     if(is_openvino):
+      ov_libs =[
+               'libopenvino_intel_cpu_plugin.so',
+               'libopenvino_intel_gpu_plugin.so',
+               'libopenvino_intel_myriad_plugin.so',
+               'libopenvino_auto_plugin.so',
+               'libopenvino_hetero_plugin.so', 
+               'libtbb.so.2',
+               'libtbbmalloc.so.2',
+               'libopenvino.so',
+               'libopenvino_c.so',
+               'libopenvino_onnx_frontend.so'
+             ]
+      for x in ov_libs:
+             y = 'onnxruntime/capi/' + x
+             result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN', y, '--force-rpath'],
+                                     check=True, stdout=subprocess.PIPE, universal_newlines=True)
+             dl_libs.append(x)
       dl_libs.append(providers_openvino)
+      dl_libs.append('plugins.xml')
+      dl_libs.append('usb-ma2x8x.mvcmd')
     data = ['capi/libonnxruntime_pywrapper.so'] if nightly_build else []
     data += [path.join('capi', x) for x in dl_libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = [
@@ -320,27 +328,6 @@ if is_manylinux:
             ['onnxruntime/capi/onnxruntime_pybind11_state_manylinux1.so'],
         ),
     ]
-
-    if(is_openvino):
-      ov_libs =[
-               'libopenvino_c.so',
-               'libopenvino.so',
-               'libopenvino_onnx_frontend.so',
-               'libopenvino_intel_cpu_plugin.so',
-               'libopenvino_intel_gpu_plugin.so',
-               'libopenvino_intel_myriad_plugin.so',
-               'libtbb.so.2',
-               'libtbbmalloc.so.2',
-             ]
-      for x in ov_libs:
-             y = 'onnxruntime/openvino_libs/' + x
-             result = subprocess.run(['patchelf', '--set-rpath', '$ORIGIN', y],
-                                     check=True, stdout=subprocess.PIPE, universal_newlines=True)
-      ov_libs.append('libtbb.so')
-      ov_libs.append('libtbbmalloc.so')
-      ov_libs.append('plugins.xml')
-      ov_libs.append('usb-ma2x8x.mvcmd')
-      data += [path.join("openvino_libs", x) for x in ov_libs if path.isfile(path.join("onnxruntime", "openvino_libs", x))]
 else:
     data = [path.join('capi', x) for x in libs if path.isfile(path.join('onnxruntime', 'capi', x))]
     ext_modules = []
@@ -353,10 +340,17 @@ examples = [path.join('datasets', x) for x in examples_names]
 extra = ["LICENSE", "ThirdPartyNotices.txt", "Privacy.md"]
 
 # Description
-README = path.join(getcwd(), "docs/python/README.rst")
-if not path.exists(README):
+if(is_openvino):
+  README = path.join(getcwd(), "docs/python/ReadMeOV.rst")
+  if not path.exists(README):
+    this = path.dirname(__file__)
+    README = path.join(this, "docs/python/ReadMeOV.rst")
+else:
+  README = path.join(getcwd(), "docs/python/README.rst")
+  if not path.exists(README):
     this = path.dirname(__file__)
     README = path.join(this, "docs/python/README.rst")
+
 if not path.exists(README):
     raise FileNotFoundError("Unable to find 'README.rst'")
 with open(README) as f:
@@ -471,9 +465,6 @@ if package_name == 'onnxruntime-nuphar':
 if package_name == 'onnxruntime-tvm':
     packages += ['onnxruntime.providers.tvm']
 
-if is_manylinux and package_name == "onnxruntime-openvino":
-    packages += (["onnxruntime.openvino_libs"])
-
 package_data["onnxruntime"] = data + examples + extra
 
 version_number = ''
@@ -554,8 +545,10 @@ if wheel_name_suffix:
         package_name = "{}-{}".format(package_name, wheel_name_suffix)
 
 cmd_classes = {}
-if bdist_wheel is not None:
-    cmd_classes['bdist_wheel'] = bdist_wheel
+if BinaryBdistWheel is not None:
+    cmd_classes['bdist_wheel'] = BinaryBdistWheel
+
+cmd_classes['install'] = InstallCommand
 cmd_classes['build_ext'] = build_ext
 
 requirements_path = path.join(getcwd(), requirements_file)
