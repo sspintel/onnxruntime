@@ -1,11 +1,11 @@
 OpenVINO™ Execution Provider for ONNX Runtime
 ===============================================
 
--  `OpenVINO™ Execution Provider for ONNX Runtime <https://github.com/microsoft/onnxruntime/>`_. is a product designed for OnnxRuntime developers who want to get started with OnnxRuntime in their inferencing applications. This product delivers  `OpenVINO™ <https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html>`_. inline optimizations which enhance inferencing performance with minimal code modifications. OpenVINO™ Execution Provider for ONNX Runtime accelerates inference across many  `AI models <https://github.com/onnx/models>`_. on a variety of Intel silicon such as:
-- Intel CPUs
-- Intel integrated GPUs
-- Intel Movidius™ Vision Processing Units - referred to as VPU
-- Intel Vision Accelerator Design with 8 Intel Movidius™ MyriadX VPUs - referred to as VAD-M or HDDL
+-  `OpenVINO™ Execution Provider for ONNX Runtime <https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html>`_ is a product designed for ONNX Runtime developers who want to get started with OpenVINO™ in their inferencing applications. This product delivers  `OpenVINO™ <https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html>`_ inline optimizations which enhance inferencing performance with minimal code modifications. OpenVINO™ Execution Provider for ONNX Runtime accelerates inference across many  `AI models <https://github.com/onnx/models>`_ on a variety of Intel® hardware such as:
+- Intel® CPUs
+- Intel® integrated GPUs
+- Intel® Movidius™ Vision Processing Units - referred to as VPU
+
 
 Installation
 ------------
@@ -13,47 +13,48 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-- Ubuntu 18.04, macOS 11.2.3 or Windows 10 - 64 bit
+- Ubuntu 18.04, 20.04 or Windows 10 - 64 bit
 - Python* 3.7, 3.8 or 3.9
 
 Windows release supports only Python3.9 
 
-This **OpenVINO™ Execution Provider for ONNX Runtime** package comes with pre-built libraries of OpenVINO™ version 2022.1.0 meaning you do not have to install OpenVINO™ separately.
+This **OpenVINO™ Execution Provider for ONNX Runtime** package comes with pre-built libraries of OpenVINO™ version 2022.1.0 meaning you do not have to install OpenVINO™ separately. CXX11_ABI flag used for the Linux wheels is 0.
+
 This package supports:
-- Intel CPUs
-- Intel integrated GPUs
-- Intel Movidius™ Vision Processing Units (VPUs)
+- Intel® CPUs
+- Intel® integrated GPUs
+- Intel® Movidius™ Vision Processing Units (VPUs)
 Please Note for VADM Please use Docker installation / Build from Source for Linux. 
 
         pip3 install openvino-onnxruntime==1.11.0
 
-For installation instructions on Windows please refer to  `OpenVINO™ integration with OnnxRuntime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
+For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
 
 For more details on build and installation please refer to `Build.md <https://onnxruntime.ai/docs/build/eps.html#openvino>`_.
 
 Usage
 ^^^^^
 
-By default, Intel CPU is used to run inference. However, you can change the default option to either Intel integrated GPU or Intel VPU for AI inferencing. Invoke the following function to change the hardware on which inferencing is done.
+By default, Intel® CPU is used to run inference. However, you can change the default option to either Intel® integrated GPU or Intel® VPU for AI inferencing. Invoke the following function to change the hardware on which inferencing is done.
 
 For more API calls and environment variables, see  `Usage.md <https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#configuration-options>`_.
 
-Examples
+Samples
 ^^^^^^^^
 
-To see what you can do with **OpenVINO™ Execution Provider for ONNX Runtime**, explore the demos located in the  `Examples <https://github.com/microsoft/onnxruntime-inference-examples>`_.
+To see what you can do with **OpenVINO™ Execution Provider for ONNX Runtime**, explore the demos located in the  `Examples <https://github.com/microsoft/onnxruntime-inference-examples/tree/main/python/OpenVINO_EP>`_.
 
 Docker Support
 ^^^^^^^^^^^^^^
 
-The latest OpenVINO EP docker image can be downloaded from dockerhub. 
+The latest OpenVINO™ EP docker image can be downloaded from dockerhub. 
 For more details see  `Docker ReadMe <https://hub.docker.com/r/openvino/onnxruntime_ep_ubuntu18>`_.
 
 
 Prebuilt Images
 ^^^^^^^^^^^^^^^^
 
-- Please find prebuilt images for CPU and GPU on https://github.com/intel/onnxruntime/releases/tag/v4.0
+- Please find prebuilt docker images for Intel® CPU and Intel® iGPU on OpenVINO™ Execution Provider `Release Page <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
 
 License
 ^^^^^^^^
