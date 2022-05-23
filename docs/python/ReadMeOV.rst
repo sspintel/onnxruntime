@@ -26,7 +26,7 @@ This package supports:
 - Intel® Movidius™ Vision Processing Units (VPUs)
 Please Note for VADM Please use Docker installation / Build from Source for Linux. 
 
-        pip3 install openvino-onnxruntime==1.11.0
+``pip3 install openvino-onnxruntime==1.11.0``
 
 For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
 
