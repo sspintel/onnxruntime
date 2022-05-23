@@ -13,7 +13,7 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-- Ubuntu 18.04, 20.04 or Windows 10 - 64 bit
+- Ubuntu 18.04, 20.04, RHEL or Windows 10 - 64 bit
 - Python* 3.7, 3.8 or 3.9
 
 Windows release supports only Python3.9 
