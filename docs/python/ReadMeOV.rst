@@ -25,7 +25,7 @@ Please Note for VADM use Docker installation / Build from Source for Linux.
 
 ``pip3 install openvino-onnxruntime==1.11.0``
 
-Windows release supports only Python 3.9. Please install openvino pip package separately for Windows. 
+Windows release supports only Python 3.9. Please install OpenVINO™ PyPi Package separately for Windows. 
 For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_.
 
 This **OpenVINO™ Execution Provider for ONNX Runtime** Linux Wheels comes with pre-built libraries of OpenVINO™ version 2022.1.0 meaning you do not have to install OpenVINO™ separately. CXX11_ABI flag for pre built OpenVINO™ libraries is 0.
