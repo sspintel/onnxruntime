@@ -16,19 +16,19 @@ Requirements
 - Ubuntu 18.04, 20.04, RHEL or Windows 10 - 64 bit
 - Python* 3.7, 3.8 or 3.9
 
-Windows release supports only Python3.9 
-
-This **OpenVINO™ Execution Provider for ONNX Runtime** package comes with pre-built libraries of OpenVINO™ version 2022.1.0 meaning you do not have to install OpenVINO™ separately. CXX11_ABI flag used for the Linux wheels is 0.
-
 This package supports:
 - Intel® CPUs
 - Intel® integrated GPUs
-- Intel® Movidius™ Vision Processing Units (VPUs)
-Please Note for VADM Please use Docker installation / Build from Source for Linux. 
+- Intel® Movidius™ Vision Processing Units (VPUs).
+
+Please Note for VADM use Docker installation / Build from Source for Linux. 
 
 ``pip3 install openvino-onnxruntime==1.11.0``
 
-For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_. 
+Windows release supports only Python 3.9. Please install openvino pip package separately for Windows. 
+For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime** for Windows <https://github.com/intel/onnxruntime/releases/tag/v4.0>`_.
+
+This **OpenVINO™ Execution Provider for ONNX Runtime** Linux Wheels comes with pre-built libraries of OpenVINO™ version 2022.1.0 meaning you do not have to install OpenVINO™ separately. CXX11_ABI flag for pre built OpenVINO™ libraries is 0.
 
 For more details on build and installation please refer to `Build.md <https://onnxruntime.ai/docs/build/eps.html#openvino>`_.
 
