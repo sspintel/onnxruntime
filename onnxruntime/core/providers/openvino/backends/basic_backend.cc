@@ -7,6 +7,8 @@
 #include <sstream>
 #include <fstream>
 
+#include <vpux/vpux_plugin_config.hpp>
+
 #include "core/providers/shared_library/provider_api.h"
 #include "../backend_utils.h"
 #include <ngraph/frontend/onnx_import/onnx.hpp>
@@ -81,7 +83,7 @@ BasicBackend::BasicBackend(const ONNX_NAMESPACE::ModelProto& model_proto,
   }
 #else
 
-  if(hw_target == "MYRIAD") 
+  if(hw_target == "MYRIAD"|| hw_target == "VPUX") 
     vpu_status = true;
   if (!ImportBlob(hw_target, vpu_status)) {
   
