@@ -23,7 +23,7 @@ This package supports:
  - Intel® integrated GPUs
  - Intel® Movidius™ Vision Processing Units (VPUs).
 
-Please Note for VADM use Docker installation / Build from Source for Linux. 
+Please Note for VAD-M use Docker installation / Build from Source for Linux. 
 
 ``pip3 install onnxruntime-openvino==1.11.0``
 
