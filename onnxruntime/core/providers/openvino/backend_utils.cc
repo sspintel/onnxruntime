@@ -202,18 +202,18 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
         }
         for (int index = 0; index < shape.dim_size(); index++) {
           if (shape.dim(index).dim_value() == 0) {
-              static_shape[index] = 1;
+              static_shape[index] = -1;
           } else {
               static_shape[index] = shape.dim(index).dim_value();
           }
         }
-        /*
+
         if (shape.dim_size() ==4){
           if (shape.dim(1).dim_value() == 3 || shape.dim(3).dim_value() == 3) {
             static_shape[0] = 1;
           }
         }
-        */
+        
         reshape_network.insert(std::make_pair(initial_value,static_shape));
         initial_value+=1;
       }
