@@ -395,7 +395,6 @@ data_files = []
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
     'Operating System :: POSIX :: Linux',
     'Topic :: Scientific/Engineering',
     'Topic :: Scientific/Engineering :: Mathematics',
@@ -410,7 +409,14 @@ classifiers = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9']
 
-if not enable_training:
+if not is_openvino:
+   classifiers.extend(['License :: OSI Approved :: MIT License'])
+
+if is_openvino:
+    classifiers.extend([
+        'Operating System :: Microsoft :: Windows'])
+
+if not enable_training and not is_openvino:
     classifiers.extend([
         'Operating System :: Microsoft :: Windows',
         'Operating System :: MacOS'])
