@@ -185,108 +185,40 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
 
   if (global_context.device_type.find("CPU") != std::string::npos &&
     subgraph_context.has_dynamic_input_shape) {
-      auto& input = model_proto.graph().input(subgraph_context.input_indexes[0]);
-      auto& shape = input.type().tensor_type().shape();
-      if (shape.dim_size() == 1) {
-        if (shape.dim(0).dim_value() == 0) {
-          cnn_network->reshape({{ov::Dimension()}});
+      std::map<size_t, ov::PartialShape> reshape_network;
+      ov::PartialShape static_shape = {1,1,1,1};
+      int initial_value = 0;
+      for (int s=0; s<(int)subgraph_context.input_indexes.size(); s++) {
+        auto& input = model_proto.graph().input(subgraph_context.input_indexes[s]);
+        auto& shape = input.type().tensor_type().shape();
+        if (shape.dim_size() == 1) {
+          static_shape = {0};
+        } else if (shape.dim_size() == 2) {
+          static_shape = {0,0};
+        } else if (shape.dim_size() == 3) {
+          static_shape = {0,0,0};
         } else {
-          cnn_network->reshape({{shape.dim(0).dim_value()}});
+          static_shape = {1,1,1,1};
         }
+        for (int index = 0; index < shape.dim_size(); index++) {
+          if (shape.dim(index).dim_value() == 0) {
+              static_shape[index] = 1;
+          } else {
+              static_shape[index] = shape.dim(index).dim_value();
+          }
+        }
+        /*
+        if (shape.dim_size() ==4){
+          if (shape.dim(1).dim_value() == 3 || shape.dim(3).dim_value() == 3) {
+            static_shape[0] = 1;
+          }
+        }
+        */
+        reshape_network.insert(std::make_pair(initial_value,static_shape));
+        initial_value+=1;
       }
-      else if (shape.dim_size() == 2) {
-        auto dynamic_H_dim_value = false;
-        auto dynamic_W_dim_value = false;
-        ov::Shape static_shape = {0,0};
-        if (shape.dim(0).dim_value() != 0) {
-          static_shape[0] = shape.dim(0).dim_value();
-        } else {
-          dynamic_H_dim_value = true;
-        }
-        if (shape.dim(1).dim_value() != 0) {
-          static_shape[1] = shape.dim(1).dim_value();
-        } else {
-          dynamic_W_dim_value = true;
-        }
-        if (dynamic_H_dim_value == true && dynamic_W_dim_value == true) {
-          cnn_network->reshape({{ov::Dimension(),ov::Dimension()}});
-        }
-        else if (dynamic_H_dim_value == false && dynamic_W_dim_value == true) {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),ov::Dimension()}});
-        }
-        else if (dynamic_H_dim_value == true && dynamic_W_dim_value == false) {
-          cnn_network->reshape({{ov::Dimension(),static_cast<unsigned int>(static_shape[1])}});
-        } else {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1])}});
-        }
-      }
-      else if (shape.dim_size() == 3) {
-        auto dynamic_H_dim_value = false;
-        auto dynamic_W_dim_value = false;
-        ov::Shape static_shape={0,0,0};
-        if (shape.dim(0).dim_value() != 0) {
-          static_shape[0] = shape.dim(0).dim_value();
-        } else {
-          static_shape[0] = 1;          
-        }
-        if (shape.dim(1).dim_value() != 0) {
-          static_shape[1] = shape.dim(1).dim_value();
-        } else {
-          dynamic_H_dim_value = true;
-        }
-        if (shape.dim(2).dim_value() != 0) {
-          static_shape[2] = shape.dim(2).dim_value();
-        } else {
-          dynamic_W_dim_value = true;
-        }
-        if (dynamic_H_dim_value == false && dynamic_W_dim_value == false) {
-          cnn_network->reshape(static_shape);
-        }
-        else if (dynamic_H_dim_value == true && dynamic_W_dim_value == false) {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),ov::Dimension(),static_cast<unsigned int>(static_shape[2])}});
-        }
-        else if (dynamic_H_dim_value == false && dynamic_W_dim_value == true) {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),ov::Dimension()}});
-        } else {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),ov::Dimension(),ov::Dimension()}});
-        }
-      }
-      else {
-        auto dynamic_H_dim_value = false;
-        auto dynamic_W_dim_value = false;
-        ov::Shape static_shape = {0,0,0,0};
-        if (shape.dim(0).dim_value() != 0) {
-          static_shape[0] = shape.dim(0).dim_value();
-        } else {
-          static_shape[0] = 1;
-        }
-        if (shape.dim(1).dim_value() != 0) {
-          static_shape[1] = shape.dim(1).dim_value();
-        }
-        if (shape.dim(2).dim_value() != 0) {
-          static_shape[2] = shape.dim(2).dim_value();
-        } else {
-          dynamic_H_dim_value = true;
-        }
-        if (shape.dim(3).dim_value() != 0) {
-          static_shape[3] = shape.dim(3).dim_value();
-        } else {
-          dynamic_W_dim_value = true;
-        }
-        if (dynamic_H_dim_value == false && dynamic_W_dim_value == false) {
-          cnn_network->reshape(static_shape);
-        }
-        else if (dynamic_H_dim_value == true && dynamic_W_dim_value == false) {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),ov::Dimension(),static_cast<unsigned int>(static_shape[3])}});
-        }
-        else if (dynamic_H_dim_value == false && dynamic_W_dim_value == true) {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),static_cast<unsigned int>(static_shape[2]),ov::Dimension()}});
-        } else {
-          cnn_network->reshape({{static_cast<unsigned int>(static_shape[0]),static_cast<unsigned int>(static_shape[1]),ov::Dimension(),ov::Dimension()}});
-        }
-      }
+      cnn_network->reshape(reshape_network);
     }
-    
   if (global_context.device_type.find("GPU") != std::string::npos &&
       subgraph_context.precision == InferenceEngine::Precision::FP16) {
     //FP16 transformations
