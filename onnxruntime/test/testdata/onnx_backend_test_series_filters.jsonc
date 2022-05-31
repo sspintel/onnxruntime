@@ -40,7 +40,7 @@
         "^test_resize_downsample_scales_cubic_A_n0p5_exclude_outside_cpu", // NOT_IMPLEMENTED : Could not find an implementation for the node Resize(13)
         "^test_resize_downsample_scales_cubic_cpu",
         "^test_resize_downsample_scales_linear_cpu",
-        "^test_resize_downsample_scales_nearest_cpu", 
+        "^test_resize_downsample_scales_nearest_cpu",
         "^test_resize_downsample_sizes_cubic_cpu",
         "^test_resize_downsample_sizes_linear_pytorch_half_pixel_cpu",
         "^test_resize_downsample_sizes_nearest_cpu",
@@ -198,8 +198,6 @@
         "^test_mvn.*",
         "^test_max_float64.*",
         "^test_min_float64.*",
-        "^test_max_one_input_cpu",
-        "^test_min_one_input_cpu",
         "^test_gather_negative_indices.*",
         "^test_sce.*",
         "^test_nllloss.*",
@@ -209,8 +207,6 @@
         "^test_reduce_sum_default_axes_keepdims*",
         "^test_reduce_sum_negative_axes_keepdims*",
         "^test_reduce_sum_empty_axes_input_noop*",
-        "^test_scatter_elements_with_negative_indices_cpu",
-        "^test_sum_one_input_cpu",
         "^test_unsqueeze_*",  // Does not support axes as input
         "^test_squeeze_*",   // Does not support axes as input
         "^test_logsoftmax_*", // Does not support opset-13 yet
