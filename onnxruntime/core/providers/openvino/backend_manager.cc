@@ -4,6 +4,9 @@
 #include "core/providers/shared_library/provider_api.h"
 #include <inference_engine.hpp>
 #include <fstream>
+#include <vector>
+#include <string>
+#include <memory>
 
 #include "contexts.h"
 #include "backend_manager.h"
