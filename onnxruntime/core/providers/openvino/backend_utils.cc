@@ -182,43 +182,7 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
 
   const std::string model = model_proto.SerializeAsString();
   auto cnn_network = global_context.ie_core.ReadModel(model);
-
-  if (global_context.device_type.find("CPU") != std::string::npos &&
-    subgraph_context.has_dynamic_input_shape) {
-      std::map<size_t, ov::PartialShape> reshape_network;
-      ov::PartialShape static_shape = {1,1,1,1};
-      int initial_value = 0;
-      for (int s=0; s<(int)subgraph_context.input_indexes.size(); s++) {
-        auto& input = model_proto.graph().input(subgraph_context.input_indexes[s]);
-        auto& shape = input.type().tensor_type().shape();
-        if (shape.dim_size() == 1) {
-          static_shape = {0};
-        } else if (shape.dim_size() == 2) {
-          static_shape = {0,0};
-        } else if (shape.dim_size() == 3) {
-          static_shape = {0,0,0};
-        } else {
-          static_shape = {1,1,1,1};
-        }
-        for (int index = 0; index < shape.dim_size(); index++) {
-          if (shape.dim(index).dim_value() == 0) {
-              static_shape[index] = -1;
-          } else {
-              static_shape[index] = shape.dim(index).dim_value();
-          }
-        }
-
-        if (shape.dim_size() ==4){
-          if (shape.dim(1).dim_value() == 3 || shape.dim(3).dim_value() == 3) {
-            static_shape[0] = 1;
-          }
-        }
-        
-        reshape_network.insert(std::make_pair(initial_value,static_shape));
-        initial_value+=1;
-      }
-      cnn_network->reshape(reshape_network);
-    }
+  
   if (global_context.device_type.find("GPU") != std::string::npos &&
       subgraph_context.precision == InferenceEngine::Precision::FP16) {
     //FP16 transformations

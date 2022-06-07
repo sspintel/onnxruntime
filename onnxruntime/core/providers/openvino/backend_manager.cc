@@ -280,7 +280,7 @@ void BackendManager::Compute(Ort::CustomOpApi api, OrtKernelContext* context) {
       concrete_backend_->Infer(api, context);
     }
   #else
-      concrete_backend_->Infer(api, context);
+    concrete_backend_->Infer(api, context);  
   #endif
 }
 
