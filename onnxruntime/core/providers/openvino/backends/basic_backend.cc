@@ -274,7 +274,7 @@ void BasicBackend::StartAsyncInference(Ort::CustomOpApi& ort, OrtKernelContext* 
       auto tensor_shape = ort.GetTensorShape(tensor_info);
       auto tensor_size = tensor_shape.size();
       auto tensor_iter = 0;
-      ov::Shape input_tensor_shape = ov::Shape(tensor_size,0);
+      ov::Shape input_tensor_shape = ov::Shape(tensor_size, 0);
       for (auto i = tensor_shape.begin(); i != tensor_shape.end(); ++i) {
         input_tensor_shape[tensor_iter] = *i;
         tensor_iter+=1;
@@ -284,7 +284,7 @@ void BasicBackend::StartAsyncInference(Ort::CustomOpApi& ort, OrtKernelContext* 
       FillInputBlob(tensor_ptr, batch_slice_idx, input_name, ort, context, subgraph_context_);
       infer_request->SetTensor(input_name, tensor_ptr);
     } else {
-      OVTensorPtr graph_input_blob; 
+      OVTensorPtr graph_input_blob;
       graph_input_blob = infer_request->GetTensor(input_name);
       FillInputBlob(graph_input_blob, batch_slice_idx, input_name, ort, context, subgraph_context_);
     }
@@ -528,7 +528,7 @@ void BasicBackend::Infer(Ort::CustomOpApi& ort, OrtKernelContext* context) {
       //Requesting for an idle infer_request from a pool of infer_requests_
       OVInferRequestPtr infer_request;
       infer_request = inferRequestsQueue_->getIdleRequest();
-    
+
       #ifdef IO_BUFFER_ENABLED
       if ((global_context_.device_type.find("GPU") != std::string::npos)  && 
           (global_context_.context != nullptr) && 

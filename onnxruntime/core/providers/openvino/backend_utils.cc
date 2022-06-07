@@ -182,7 +182,7 @@ CreateOVModel(const ONNX_NAMESPACE::ModelProto& model_proto, const GlobalContext
 
   const std::string model = model_proto.SerializeAsString();
   auto cnn_network = global_context.ie_core.ReadModel(model);
-  
+
   if (global_context.device_type.find("GPU") != std::string::npos &&
       subgraph_context.precision == InferenceEngine::Precision::FP16) {
     //FP16 transformations
