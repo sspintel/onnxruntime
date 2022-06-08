@@ -75,3 +75,7 @@ Using the ORTModule class wrapper, ONNX Runtime for PyTorch runs the forward an
 
 The ORTModule is instantiated from [`torch-ort`](https://github.com/pytorch/ort) backend in PyTorch. This new interface enables a seamless integration for ONNX Runtime training in a PyTorch training code with minimal changes to the existing code.
 
+## Extending ONNX Runtime Training for Inference
+Just like ORTModule for training, ORTInferenceModule is instantiated from torch-ort backend in PyTorch. This new interface enables a seamless integration for ONNX Runtime in a PyTorch inference code with minimal changes to the existing code.
+
+In preview mode, torch-ort inference is validated with OpenVINO™ Execution Provider. More details can be accessed at: [torch-ort-inference](https://github.com/pytorch/ort).

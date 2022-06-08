@@ -568,3 +568,11 @@ In order to showcase what you can do with the OpenVINO™ Execution Provider for
 
 ### Tutorial on how to use OpenVINO™ Execution Provider for ONNX Runtime python wheel packages
 [Python Pip Wheel Packages](https://www.intel.com/content/www/us/en/artificial-intelligence/posts/openvino-execution-provider-for-onnx-runtime.html)
+
+### Accelerate inference for PyTorch models with OpenVINO Execution Provider (Preview)
+
+ONNX Runtime for PyTorch accelerates PyTorch model inference using ONNX Runtime.
+
+It is available via the torch-ort-inference python package. This preview package enables OpenVINO™ Execution Provider for ONNX Runtime by default for accelerating inference on various Intel CPUs and integrated GPUs.
+
+In preview mode, torch-ort inference is validated with OpenVINO Execution Provider. More details can be accessed at: [torch-ort-inference](https://github.com/pytorch/ort).
