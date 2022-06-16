@@ -503,7 +503,7 @@ if enable_training:
     # onnxruntime-training-1.7.0.dev20210408+cu111-cp36-cp36m-linux_x86_64.whl
     # this is needed immediately by pytorch/ort so that the user is able to
     # install an onnxruntime training package with matching torch cuda version.
-    if not is_openvino :
+    if not is_openvino:
         # To support the package consisting of both openvino and training modules part of it
         package_name = "onnxruntime-training"
 
