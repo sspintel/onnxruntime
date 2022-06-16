@@ -116,7 +116,7 @@ class build_ext(_build_ext):
 try:
     from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
-    class BdistWheel(_bdist_wheel):
+    class bdist_wheel(_bdist_wheel):
         """Build a wheel package"""
 
         if is_openvino and is_manylinux:
@@ -285,7 +285,7 @@ try:
 except ImportError as error:
     print("Error importing dependencies:")
     print(error)
-    BdistWheel = None
+    bdist_wheel = None
 
 
 class InstallCommand(InstallCommandBase):
@@ -610,8 +610,8 @@ if wheel_name_suffix:
         package_name = "{}-{}".format(package_name, wheel_name_suffix)
 
 cmd_classes = {}
-if BdistWheel is not None:
-    cmd_classes["bdist_wheel"] = BdistWheel
+if bdist_wheel is not None:
+    cmd_classes["bdist_wheel"] = bdist_wheel
 cmd_classes["install"] = InstallCommand
 cmd_classes["build_ext"] = build_ext
 
