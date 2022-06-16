@@ -118,6 +118,7 @@ try:
 
     class BdistWheel(_bdist_wheel):
         """Build a wheel package"""
+
         if is_openvino and is_manylinux:
 
             def get_tag(self):
