@@ -1616,6 +1616,10 @@ include_directories(
   ${REPO_ROOT}/include/onnxruntime/core/session
 )
 
+if($ENV{FIL_ENABLED})
+  add_definitions(-DOPENVINO_FIL_ENABLED=1)
+endif()
+
 if (onnxruntime_USE_OPENVINO)
 
   add_definitions(-DUSE_OPENVINO=1)
@@ -1716,7 +1720,6 @@ if (onnxruntime_USE_OPENVINO)
     add_definitions(-DOPENVINO_CONFIG_AUTO=1)
     add_definitions(-DDEVICE_NAME="${onnxruntime_USE_OPENVINO_DEVICE}")
   endif()
-
 endif()
 
 if (onnxruntime_USE_VITISAI)
