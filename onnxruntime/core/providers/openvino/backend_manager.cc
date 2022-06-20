@@ -1,10 +1,11 @@
 // Copyright (C) 2019-2022 Intel Corporation
 // Licensed under the MIT License
-#include "backend_manager.h"
+
 #include "core/providers/shared_library/provider_api.h"
 #include <inference_engine.hpp>
 #include "contexts.h"
 
+#include "backend_manager.h"
 #include "ibackend.h"
 #include "backend_utils.h"
 #include <fstream>
