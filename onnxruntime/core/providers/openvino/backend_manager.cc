@@ -6,7 +6,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-
 #include "core/providers/shared_library/provider_api.h"
 #include "contexts.h"
 #include "backend_manager.h"
