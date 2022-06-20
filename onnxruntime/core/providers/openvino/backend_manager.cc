@@ -5,12 +5,12 @@
 #include <inference_engine.hpp>
 #include "contexts.h"
 
+#include "ibackend.h"
+#include "backend_utils.h"
 #include <fstream>
 #include <vector>
 #include <string>
 #include <memory>
-#include "ibackend.h"
-#include "backend_utils.h"
 
 namespace onnxruntime {
 namespace openvino_ep {
