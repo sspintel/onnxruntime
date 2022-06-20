@@ -4,11 +4,11 @@
 #include "core/providers/shared_library/provider_api.h"
 #include <inference_engine.hpp>
 #include "contexts.h"
-#include "backend_manager.h"
 #include <fstream>
+#include "backend_manager.h"
+
 #include "ibackend.h"
 #include "./backend_utils.h"
-
 
 #include <vector>
 #include <string>
