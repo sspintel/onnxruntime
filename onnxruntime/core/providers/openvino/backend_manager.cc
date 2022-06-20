@@ -3,17 +3,13 @@
 
 #include "core/providers/shared_library/provider_api.h"
 #include <inference_engine.hpp>
-
-#include <fstream>
-
 #include "contexts.h"
 
 #include "backend_manager.h"
-
+#include <fstream>
 #include <vector>
 #include <string>
 #include <memory>
-
 #include "ibackend.h"
 #include "backend_utils.h"
 
