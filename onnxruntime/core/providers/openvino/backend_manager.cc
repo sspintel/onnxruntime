@@ -1,10 +1,6 @@
 // Copyright (C) 2019-2022 Intel Corporation
 // Licensed under the MIT License
 
-#include <vector>
-#include <string>
-#include <memory>
-
 #include "core/providers/shared_library/provider_api.h"
 #include <inference_engine.hpp>
 
@@ -14,10 +10,12 @@
 
 #include "backend_manager.h"
 
+#include <vector>
+#include <string>
+#include <memory>
+
 #include "ibackend.h"
-
 #include "backend_utils.h"
-
 
 namespace onnxruntime {
 namespace openvino_ep {
