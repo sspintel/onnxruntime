@@ -221,6 +221,9 @@ void BasicBackend::PopulateConfigValue(OVConfig& config) {
       config["MYRIAD_CHECK_PREPROCESSING_INSIDE_MODEL"] = CONFIG_VALUE(NO);
     #endif  
   }
+  if (global_context_.device_type.find("VPUX") != std::string::npos) {
+    config["PERFORMANCE_HINT"] = "THROUGHPUT";
+  }
 }
 
 void BasicBackend::EnableCaching() {
