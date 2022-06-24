@@ -269,7 +269,6 @@ void BackendManager::Compute(Ort::CustomOpApi api, OrtKernelContext* context) {
       LOGS_DEFAULT(INFO) << "Start Compute"; 
     }
   #endif
-  if (subgraph_context_.has_dynamic_input_shape) {
   bool use_dynamic_backend = true;
   if (GetGlobalContext().enable_dynamic_shapes && subgraph_context_.has_dynamic_input_shape &&
       GetGlobalContext().device_type.find("CPU") != std::string::npos) {
