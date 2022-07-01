@@ -24,7 +24,7 @@
 namespace onnxruntime {
 namespace openvino_ep {
 
-//Constructor 
+//Constructor
 GetCapability::GetCapability(const GraphViewer& graph_viewer_param, std::string device_type_param,
                              const std::string version_param):
                 graph_viewer_(graph_viewer_param), device_type_(device_type_param){
@@ -151,14 +151,16 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
                 });
     }
     int no_of_clusters = 0;
-
+    std::cout << "###################" << std::endl;
+    std::cout << "No of connected clusters " << connected_clusters.size() << std::endl;
     for (auto this_cluster : connected_clusters) {
       if (device_type_ == "MYRIAD" && no_of_clusters == 10) {
         break;
       }
-
+      std::cout << "###################" << std::endl;
+      std::cout << "No of this_cluster Nodes " << this_cluster.size() << std::endl;
       //If subgraph has less then three, graph is considered trivial
-      if (this_cluster.size() < 3) {
+      if (this_cluster.size() < 30) {
         continue;
       } else {
         //If subgraph only has Identity node, EyeLike or Dropout, OpenVINO EP doesn't support it.
@@ -170,7 +172,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
           if(data_ops_->SpecialConditionForClusterSizeOne(ng_required_initializers, node))
             continue;
         }
-      }  
+      }
 
       std::vector<std::string> cluster_graph_inputs, cluster_inputs, const_inputs, cluster_outputs;
 
@@ -190,7 +192,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             }
           }
         }
-      
+
         if (node->OpType() == "Conv" || node->OpType() == "Identity") {
           auto output_name = node->OutputDefs()[0]->Name();
           auto it = find(cluster_outputs.begin(), cluster_outputs.end(), output_name);
@@ -199,7 +201,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
             break;
           }
         }
-        
+
         std::map<std::string, int> slice_map;
         if (node->OpType() == "Slice") {
           auto input = node->InputDefs()[0];
@@ -227,15 +229,19 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
       /* In scenarios, when there are no inputs or all inputs being initializers,
          ConstantFolding optimization in onnxruntime pre-computes the value.*/
       if (!cluster_inputs.empty()) {
+        std::cout << "*********" << std::endl;
+        std::cout << " " << omit_subgraph << std::endl;
+        //if (this_cluster.size()>30){
         AppendClusterToSubGraph(this_cluster, cluster_inputs, cluster_outputs, result);
         no_of_clusters++;
+        //}
       }
     }
     LOGS_DEFAULT(INFO) << "[OpenVINO-EP] Supported subgraphs on OpenVINO: " << no_of_clusters;
   }
 
   return result;
-} 
+}
 
 }
 }
