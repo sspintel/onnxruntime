@@ -143,6 +143,11 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
 
     auto connected_clusters = GetConnectedClusters(graph_viewer_, ng_clusters);
 
+    int minimum_number_of_nodes = 3;
+    int maximum_number_of_clusters = 5;
+    if (int(connected_clusters.size()) > maximum_number_of_clusters ){
+      minimum_number_of_nodes=10;
+    }
     //Myriad plugin can only load 10 subgraphs
     if (device_type_ == "MYRIAD" && connected_clusters.size() > 10) {
       std::sort(connected_clusters.begin(), connected_clusters.end(),
@@ -158,7 +163,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
       }
 
       //If subgraph has less then three, graph is considered trivial
-      if (this_cluster.size() < 3) {
+      if (int(this_cluster.size()) < minimum_number_of_nodes) {
         continue;
       } else {
         //If subgraph only has Identity node, EyeLike or Dropout, OpenVINO EP doesn't support it.
@@ -179,7 +184,7 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
       bool omit_subgraph = false;
       //Omitting zero dim subgraphs
       for (auto index : this_cluster) {
-         const Node* node = graph_viewer_.GetNode(index);
+        const Node* node = graph_viewer_.GetNode(index);
         if (data_ops_->DoNotOmitSubGraph(node->OpType())) {
           for (const auto& input : node->InputDefs()) {
             auto input_name = input->Name();
@@ -191,14 +196,14 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
           }
         }
       
-        if (node->OpType() == "Conv" || node->OpType() == "Identity") {
-          auto output_name = node->OutputDefs()[0]->Name();
-          auto it = find(cluster_outputs.begin(), cluster_outputs.end(), output_name);
-          if (it != cluster_outputs.end() && node->GetOutputEdgesCount() != 0) {
-            omit_subgraph = true;
-            break;
-          }
-        }
+      //   if (node->OpType() == "Conv" || node->OpType() == "Identity") {
+      //     auto output_name = node->OutputDefs()[0]->Name();
+      //     auto it = find(cluster_outputs.begin(), cluster_outputs.end(), output_name);
+      //     if (it != cluster_outputs.end() && node->GetOutputEdgesCount() != 0) {
+      //       omit_subgraph = true;
+      //       break;
+      //     }
+      //   }
         
         std::map<std::string, int> slice_map;
         if (node->OpType() == "Slice") {
@@ -235,7 +240,6 @@ std::vector<std::unique_ptr<ComputeCapability>> GetCapability::Execute() {
   }
 
   return result;
-} 
-
+}
 }
 }
