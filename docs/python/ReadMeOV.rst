@@ -28,7 +28,7 @@ Please Note for VAD-M use Docker installation / Build from Source for Linux.
 ``pip3 install onnxruntime-openvino==1.12.0``
 
 Please install OpenVINO™ PyPi Package separately for Windows. 
-For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime for Windows <https://github.com/intel/onnxruntime/releases/>`_.
+For installation instructions on Windows please refer to  `OpenVINO™ Execution Provider for ONNX Runtime for Windows <https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#usage>`_.
 
 **OpenVINO™ Execution Provider for ONNX Runtime** Linux Wheels comes with pre-built libraries of OpenVINO™ version 2022.1.0 eliminating the need to install OpenVINO™ separately. The OpenVINO™ libraries are prebuilt with CXX11_ABI flag set to 0.
 
